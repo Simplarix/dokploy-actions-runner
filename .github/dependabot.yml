@@ -1,0 +1,14 @@
+version: 2
+updates:
+  - package-ecosystem: docker-compose
+    directory: /blueprints/dokploy-actions-runner
+    schedule:
+      interval: weekly
+  - package-ecosystem: pip
+    directory: /
+    schedule:
+      interval: monthly
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly
