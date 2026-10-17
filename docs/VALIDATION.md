@@ -13,10 +13,20 @@ limits. Project names, credentials, infrastructure details and private run links
 are intentionally omitted. These observations establish this repository-runner
 path, not every supported configuration or a general performance benchmark.
 
-Live organization/group registration, parallel independent deployments, the
-catalog preview/import path, exact in-place restart behavior, runner auto-update
-and complete deregistration during shutdown have not been independently verified.
-A new registration after Stop → Deploy is not proof of every shutdown step.
+### Catalog preview acceptance — 17 October 2026
+
+The tester confirmed completion of the repository-runner preview checklist for
+[Dokploy/templates PR #1234](https://github.com/Dokploy/templates/pull/1234):
+Base64 import into a separate Compose test service, environment configuration,
+registration as one Idle runner, a successful targeted smoke workflow and removal
+of the GitHub runner entry after graceful stop. This is tester-confirmed live
+acceptance, not an independently captured deployment trace. No private identifiers
+or run links are published.
+
+Live organization/group registration, parallel independent deployments, exact
+in-place restart behavior and runner auto-update remain unverified. The confirmed
+repository shutdown check does not establish cleanup for every scope or failure
+condition.
 
 ## Automated checks
 

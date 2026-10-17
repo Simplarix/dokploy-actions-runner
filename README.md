@@ -27,9 +27,10 @@ automatic scaling or disposable environments for every job. See
 [security and limitations](SECURITY.md) before allowing repositories to use it.
 
 A repository runner has been used successfully for real CI jobs in Dokploy,
-including job execution after Stop → Deploy. Automated tests cover both scopes;
-live organization/group behavior and full shutdown deregistration remain
-unverified. See the short [validation summary](docs/VALIDATION.md).
+including job execution after Stop → Deploy. The upstream catalog preview import,
+a repository smoke job and runner removal after graceful stop were also confirmed
+by the tester. Automated tests cover both scopes; live organization/group behavior
+remains unverified. See the short [validation summary](docs/VALIDATION.md).
 
 ## Deploy in Dokploy
 
