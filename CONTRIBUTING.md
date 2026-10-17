@@ -24,14 +24,20 @@ present-tense verb, lowercase description, no final period.
    upstream checkout. The Compose file is self-contained. Keep the metadata as a
    single object in that directory; do not add or edit upstream's root `meta.json`.
 3. Preserve the logo, matching metadata ID/folder name, image version and links.
+   For the upstream copy, name the Compose service `dokploy-actions-runner` to
+   match its folder and express `config.env` as an array of `KEY=value` strings.
+   The standalone project uses `runner` and the equivalent environment table.
+   The image and inline startup/lifecycle behavior must remain identical.
    No domains, custom networks, fixed container names or external scripts are needed.
    Compose uses the current spec without the obsolete top-level `version` field.
 4. Run upstream's `node build-scripts/generate-meta.js --check` and validate the
    YAML/TOML. This repository provides additional checks, not a substitute for
    upstream CI.
-5. Test the template import and the [live acceptance checklist](docs/VALIDATION.md)
-   in an actual Dokploy instance with disposable private GitHub targets. Include
-   the upstream PR preview and accurate testing notes in the PR description.
+5. Record the tested Raw Compose path and any remaining checks accurately. A draft
+   PR can provide the upstream preview; test that import path before marking the
+   contribution ready. Use the [live acceptance checklist](docs/VALIDATION.md)
+   with disposable private GitHub targets. Keep customer/project identifiers,
+   credentials and internal run links out of public testing notes.
 
 Upstream explicitly requires contributor testing. Passing local mock tests alone
 does not justify claiming a fully tested deployment or opening that PR as ready.

@@ -1,6 +1,12 @@
 # dokploy-actions-runner
 
+[![Validation](https://github.com/Simplarix/dokploy-actions-runner/actions/workflows/validate.yml/badge.svg)](https://github.com/Simplarix/dokploy-actions-runner/actions/workflows/validate.yml)
+[![Release](https://img.shields.io/github/v/release/Simplarix/dokploy-actions-runner)](https://github.com/Simplarix/dokploy-actions-runner/releases)
+[![MIT license](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+
 **Self-hosted GitHub Actions runners, deployed as independent Dokploy Compose services.**
+
+Community-maintained by [Simplarix](https://github.com/Simplarix).
 
 One deployment runs one Linux runner for a repository or organization. Deploy the
 template again to add capacity or separate projects, labels and runner groups.
@@ -19,6 +25,11 @@ This MVP targets **GitHub.com**, Dokploy's **Docker Compose** deployment mode an
 trusted workflows. It does not support Enterprise Server, Docker Stack/Swarm,
 automatic scaling or disposable environments for every job. See
 [security and limitations](SECURITY.md) before allowing repositories to use it.
+
+A repository runner has been used successfully for real CI jobs in Dokploy,
+including job execution after Stop → Deploy. Automated tests cover both scopes;
+live organization/group behavior and full shutdown deregistration remain
+unverified. See the short [validation summary](docs/VALIDATION.md).
 
 ## Deploy in Dokploy
 
@@ -201,6 +212,20 @@ updates may need a manual metadata edit. Do not let a pin become an excuse to st
 updating. GitHub documents update deadlines in its
 [runner reference](https://docs.github.com/en/actions/reference/runners/self-hosted-runners).
 
+### Sharing a host and mixing runner types
+
+Budget CPU, memory and disk for the applications already running on your Dokploy
+host. For example, add `cpus: 1.0`, `mem_limit: 2g` and `memswap_limit: 2g` under
+the runner service to cap it at one CPU and 2 GiB with no extra swap allowance.
+These are workload-specific limits, not a recommended size for every build.
+
+Keep short checks on GitHub-hosted runners and route suitable longer jobs to
+this runner using each job's `runs-on` labels. The workflow must choose a runner
+before the job starts; this template does not switch running jobs or provide an
+automatic fallback when a self-hosted runner is offline. Docker-dependent jobs
+need a separate execution environment. Measure queue time and total job duration
+before claiming a speed improvement.
+
 ## Local deployment and validation
 
 For local deployment, copy `.env.example` to `.env`, restrict permissions with
@@ -264,7 +289,8 @@ reports. Report image tag/digest, architecture, scope and redacted logs.
 
 The blueprint follows the upstream per-template directory and metadata layout.
 See [CONTRIBUTING.md](CONTRIBUTING.md) for validation and the path to a future
-`Dokploy/templates` PR. A live deployment must be tested before that submission.
+`Dokploy/templates` contribution. The catalog preview/import is a separate check
+from the tested Raw Compose deployment.
 
 Original configuration, scripts, documentation and logo are [MIT licensed](LICENSE).
 The external image and GitHub runner retain their own upstream licenses; this
