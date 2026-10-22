@@ -11,8 +11,7 @@
   CI, and opt-in real GitHub JavaScript/lifecycle smoke tests.
 - Aligns the service name and TOML environment format with the published Dokploy
   catalog; documents the local-service rename and Node18 → Node24 migration.
-- Adds an image update runbook and a prepared SimpleDPP rollback/migration plan.
-
+- Adds an image update runbook and prepared migration and rollback guidance.
 
 ## v0.1.0 — 17 October 2026
 

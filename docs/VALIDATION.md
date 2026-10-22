@@ -6,7 +6,7 @@ Runner 2.338.1, index `sha256:36782fe0e5994b301652408c32113a3562fabb1f0ead865ccc
 
 | Check | Result |
 | --- | --- |
-| Configuration and update/inventory regression suite | 12 tests pass, including malformed secrets, allowlist bypass attempts, unknown runtimes architecture mismatches and runtime-floor regressions |
+| Configuration and update/inventory regression suite | 13 tests pass, including malformed secrets, allowlist bypass attempts, unknown runtimes architecture mismatches and runtime-floor regressions |
 | Native AMD64 and ARM64 offline lifecycle CI | [Both pass](https://github.com/Simplarix/dokploy-actions-runner/actions/runs/39816774855); repo/org routing, non-root execution, graceful stop/restart, unexpected exit and hard-kill recovery |
 | Actual runner and Node executable inventory | Both architectures pass, including genuine Node20 retention and default Node24 24.22.1 |
 | Real GitHub jobs before restart | [Both pass](https://github.com/Simplarix/dokploy-actions-runner/actions/runs/39816886613) |

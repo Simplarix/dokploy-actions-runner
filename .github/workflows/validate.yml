@@ -1,4 +1,5 @@
 name: Validate template
+run-name: ${{ inputs.live_smoke && format('Runner smoke {0}', inputs.runner_label) || 'Validate template' }}
 on:
   push:
   pull_request:

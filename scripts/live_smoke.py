@@ -42,6 +42,12 @@ def until(check, description, seconds=300):
     raise RuntimeError('Timed out: ' + description)
 
 
+def matches_dispatch(run, label, ref, commit, seen):
+    return (run['id'] not in seen and run.get('head_branch') == ref
+            and run.get('head_sha') == commit
+            and run.get('display_title') == 'Runner smoke ' + label)
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--repo', required=True)
@@ -54,6 +60,10 @@ def main():
               'platforms': ['linux/arm64 (native Docker Desktop VM)', 'linux/amd64 (Rosetta emulation)']}
     base = f'repos/{args.repo}'
     projects = []
+    seen = set()
+    dispatched = []
+    commit = api(base + '/commits/' + args.ref)['sha']
+    report['expected_commit'] = commit
     try:
         with tempfile.TemporaryDirectory(prefix='runner-live-') as directory:
             for arch in ['arm64', 'amd64']:
@@ -79,16 +89,18 @@ def main():
             print('Both disposable runner architectures registered and online', flush=True)
             for cycle in ('initial', 'after-restart'):
                 if cycle == 'after-restart':
+                    until(ready, 'idle before restart')
                     for dc, environment, _ in projects:
                         command([*dc, 'restart'], env=environment, timeout=180)
                     until(ready, 'both runners online after restart')
-                previous = {r['id'] for r in api(base + '/actions/workflows/validate.yml/runs?event=workflow_dispatch&per_page=20')['workflow_runs']}
                 api(base + '/actions/workflows/validate.yml/dispatches', 'POST',
                     {'ref': args.ref, 'inputs': {'live_smoke': 'true', 'runner_label': label}})
                 def new_run():
                     return next((r for r in api(base + '/actions/workflows/validate.yml/runs?event=workflow_dispatch&per_page=20')['workflow_runs']
-                                 if r['id'] not in previous and r['head_branch'] == args.ref), None)
+                                 if matches_dispatch(r, label, args.ref, commit, seen)), None)
                 run = until(new_run, 'smoke workflow created')
+                seen.add(run['id'])
+                dispatched.append(run['id'])
                 print(f'{cycle}: {run["html_url"]}', flush=True)
                 def finished():
                     current = api(base + '/actions/runs/' + str(run['id']))
@@ -98,6 +110,10 @@ def main():
                 report['runs'].append({'cycle': cycle, 'url': result['html_url'], 'id': result['id'],
                                        'commit': result['head_sha'], 'conclusion': result['conclusion'],
                                        'jobs': [{k: j[k] for k in ('name', 'conclusion', 'runner_name')} for j in jobs]})
+                live_jobs = [j for j in jobs if j['name'].startswith('live-smoke (')]
+                if (len(live_jobs) != 2 or {j['runner_name'] for j in live_jobs} != {p[2] for p in projects}
+                        or any(j['conclusion'] != 'success' for j in live_jobs)):
+                    raise RuntimeError('Both smoke jobs must succeed on this invocation’s runners')
                 if result['conclusion'] != 'success':
                     raise RuntimeError('GitHub smoke workflow did not succeed; see the recorded run URL')
             for dc, environment, _ in projects:
@@ -107,21 +123,33 @@ def main():
     finally:
         # Override files may have gone away; cleanup by unique Compose project.
         cleanup_errors = []
+        for run_id in dispatched:
+            try:
+                run = api(base + '/actions/runs/' + str(run_id))
+                if run['status'] != 'completed':
+                    api(base + '/actions/runs/' + str(run_id) + '/cancel', 'POST')
+            except RuntimeError:
+                cleanup_errors.append('workflow-' + str(run_id))
         for _, environment, project in projects:
             try:
                 command(['docker', 'compose', '-p', project, '--env-file', os.devnull,
                          '-f', str(COMPOSE), 'down', '--timeout', '120'], env=environment, timeout=180)
             except RuntimeError:
                 cleanup_errors.append(project)
-        remaining = [r for r in api(base + '/actions/runners')['runners'] if r['name'].startswith(label)]
-        for runner in remaining:
-            # Only registrations created by this invocation can be removed.
-            if runner['name'] in {p[2] for p in projects}:
-                api(base + '/actions/runners/' + str(runner['id']), 'DELETE')
+        try:
+            remaining = [r for r in api(base + '/actions/runners')['runners'] if r['name'].startswith(label)]
+            for runner in remaining:
+                # Only registrations created by this invocation can be removed.
+                if runner['name'] in {p[2] for p in projects}:
+                    api(base + '/actions/runners/' + str(runner['id']), 'DELETE')
+        except RuntimeError:
+            cleanup_errors.append('github-registrations-' + label)
         report['cleanup'] = not cleanup_errors
         report['manual_cleanup_names'] = cleanup_errors
         args.output.write_text(json.dumps(report, indent=2) + '\n')
         token = None
+    if not report['cleanup']:
+        raise RuntimeError('Test cleanup needs attention; see recorded identifiers')
     print('Real GitHub jobs, restart, graceful deregistration and cleanup: OK')
 
 

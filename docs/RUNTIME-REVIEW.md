@@ -12,7 +12,7 @@ We select the maintained public upstream **2.338.1-ubuntu-noble** image and set 
 fixed PATH preferring its genuine embedded **Node24 24.22.1** for shell steps.
 GitHub still selects JavaScript action runtimes independently. No executable is
 renamed, replaced or deleted, and no self-update setting is disabled. No custom
-image, package publication, SimpleDPP dependency or registry credentials are
+image, package publication, application-package dependency or registry credentials are
 required. This is a default-execution-path correction, **not removal of every
 vulnerable component in the image**.
 
