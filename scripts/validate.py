@@ -53,7 +53,7 @@ def compose_config(values=None, env_file=None, project="runner-validation"):
 
 def validate_startup(environment):
     # Run the exact inline validation without calling the upstream runner.
-    script = load_blueprint()["services"]["runner"]["entrypoint"][2]
+    script = load_blueprint()["services"]["dokploy-actions-runner"]["entrypoint"][2]
     script = script.replace("$$", "$")
     if script.count(HANDOFF) != 1:
         raise ValueError("Unexpected upstream entrypoint handoff")
@@ -72,8 +72,8 @@ def require(condition, message):
 def validate_project():
     blueprint = load_blueprint()
     require(set(blueprint) == {"services"}, "Unexpected top-level Compose keys")
-    require(set(blueprint["services"]) == {"runner"}, "Expected exactly one runner service")
-    runner = blueprint["services"]["runner"]
+    require(set(blueprint["services"]) == {"dokploy-actions-runner"}, "Expected exactly one runner service")
+    runner = blueprint["services"]["dokploy-actions-runner"]
     require(re.fullmatch(r"ghcr\.io/myoung34/docker-github-actions-runner:"
                          r"\d+\.\d+\.\d+-ubuntu-noble@sha256:[0-9a-f]{64}",
                          runner["image"]), "Runner image must be release/digest pinned")
@@ -87,7 +87,8 @@ def validate_project():
     environment = runner["environment"]
     fixed = {"RUN_AS_ROOT": "false", "START_DOCKER_SERVICE": "false",
              "DISABLE_AUTOMATIC_DEREGISTRATION": "false", "RUNNER_WORKDIR": "/_work",
-             "UNSET_CONFIG_VARS": "false"}
+             "UNSET_CONFIG_VARS": "false",
+             "PATH": "/actions-runner/externals/node24/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"}
     require(set(environment) == INPUTS | fixed.keys(), "Unexpected environment inputs")
     for key, value in fixed.items():
         require(environment[key] == value, f"Unsafe lifecycle setting: {key}")
@@ -107,8 +108,12 @@ def validate_project():
             "Dokploy must generate a unique default runner name")
     require(template["config"]["domains"] == template["config"]["mounts"] == [],
             "Runner requires no domains or file mounts")
-    require(set(template["config"]["env"]) == INPUTS, "Template inputs must match Compose")
-    require(template["config"]["env"]["ACCESS_TOKEN"] == "", "Never ship a token")
+    entries = template["config"]["env"]
+    require(isinstance(entries, list), "Dokploy catalog env must be an array of KEY=value strings")
+    template_env = dict(entry.split("=", 1) for entry in entries)
+    require(len(entries) == len(template_env) and set(template_env) == INPUTS,
+            "Template inputs must match Compose without duplicates")
+    require(template_env["ACCESS_TOKEN"] == "", "Never ship a token")
     metadata = json.loads((BLUEPRINT / "meta.json").read_text())
     require(isinstance(metadata, dict), "Metadata must be a single object")
     require(metadata["id"] == BLUEPRINT.name, "Metadata ID must match blueprint folder")
@@ -122,9 +127,9 @@ def validate_project():
     for path in [ROOT / ".github/workflows/validate.yml", *sorted((ROOT / "examples/workflows").glob("*.yml"))]:
         require(isinstance(yaml.safe_load(path.read_text()), dict), f"Invalid YAML: {path.name}")
     config = compose_config(FIXTURE)
-    require(config["services"]["runner"]["environment"]["ACCESS_TOKEN"] == FIXTURE["ACCESS_TOKEN"],
+    require(config["services"]["dokploy-actions-runner"]["environment"]["ACCESS_TOKEN"] == FIXTURE["ACCESS_TOKEN"],
             "Token was not forwarded to the container")
-    result = validate_startup(config["services"]["runner"]["environment"])
+    result = validate_startup(config["services"]["dokploy-actions-runner"]["environment"])
     require(result.returncode == 0, "Default repository fixture fails startup validation")
 
 
@@ -136,7 +141,7 @@ def main():
         validate_project()
         print("Blueprint JSON, TOML, YAML, security defaults and Compose rendering: OK")
         if args.env_file:
-            environment = compose_config(env_file=args.env_file.resolve())["services"]["runner"]["environment"]
+            environment = compose_config(env_file=args.env_file.resolve())["services"]["dokploy-actions-runner"]["environment"]
             result = validate_startup(environment)
             if result.returncode:
                 # Our wrapper emits constant diagnostic strings, never values.

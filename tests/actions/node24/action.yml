@@ -1,0 +1,6 @@
+name: Verify Node24 action runtime
+runs:
+  using: node24
+  pre: index.js
+  main: index.js
+  post: index.js

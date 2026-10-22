@@ -1,7 +1,7 @@
 services:
-  runner:
+  dokploy-actions-runner:
     # Maintained upstream runner, Ubuntu 24.04; multi-architecture index digest.
-    image: ghcr.io/myoung34/docker-github-actions-runner:2.338.0-ubuntu-noble@sha256:2112bde2ee92b7480babfbe3043d0461e322b97ca01e6ac94698895f3dc1f528
+    image: ghcr.io/myoung34/docker-github-actions-runner:2.338.1-ubuntu-noble@sha256:36782fe0e5994b301652408c32113a3562fabb1f0ead865ccc196d3e870f9109
     restart: unless-stopped
     user: runner
     cap_drop:
@@ -19,6 +19,9 @@ services:
       RUNNER_NAME: ${RUNNER_NAME:?Set a unique RUNNER_NAME for each deployment}
       LABELS: ${LABELS:?Set comma-separated runner LABELS}
       RUNNER_GROUP: ${RUNNER_GROUP:-Default}
+      # Use the maintained embedded Node24 for shell steps as well as JS actions.
+      # Keep upstream runtime slots intact; this is not a Node20 binary replacement.
+      PATH: /actions-runner/externals/node24/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
       RUN_AS_ROOT: "false"
       START_DOCKER_SERVICE: "false"
       DISABLE_AUTOMATIC_DEREGISTRATION: "false"
