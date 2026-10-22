@@ -54,6 +54,9 @@ def compose_config(values=None, env_file=None, project="runner-validation"):
 def validate_startup(environment):
     # Run the exact inline validation without calling the upstream runner.
     script = load_blueprint()["services"]["dokploy-actions-runner"]["entrypoint"][2]
+    # Environment syntax validation runs on the host; the actual runtime gate
+    # runs in the image and is tested separately, never simulated as runtime proof.
+    script = re.sub(r"# Runtime gate:.*?# End runtime gate.\n", "", script, flags=re.S)
     script = script.replace("$$", "$")
     if script.count(HANDOFF) != 1:
         raise ValueError("Unexpected upstream entrypoint handoff")

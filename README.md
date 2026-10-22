@@ -14,8 +14,9 @@ The template uses the maintained
 [myoung34/docker-github-actions-runner](https://github.com/myoung34/docker-github-actions-runner)
 image; its upstream entrypoint owns registration, execution and deregistration.
 
-- Ubuntu 24.04 image, pinned to runner **2.338.0** and a multi-architecture digest.
+- Ubuntu 24.04 image, pinned to runner **2.338.1** and a multi-architecture digest.
 - Native `linux/amd64` and `linux/arm64`; no forced architecture or emulation.
+- Node **24.22.1** for default shell commands and current JavaScript Actions.
 - Explicit environment forwarding and validation before registration.
 - Non-root execution, all capabilities dropped, privilege escalation disabled.
 - No privileged mode, host Docker socket, host directory mounts or published ports.
@@ -26,11 +27,11 @@ trusted workflows. It does not support Enterprise Server, Docker Stack/Swarm,
 automatic scaling or disposable environments for every job. See
 [security and limitations](SECURITY.md) before allowing repositories to use it.
 
-A repository runner has been used successfully for real CI jobs in Dokploy,
-including job execution after Stop → Deploy. The upstream catalog preview import,
-a repository smoke job and runner removal after graceful stop were also confirmed
-by the tester. Automated tests cover both scopes; live organization/group behavior
-remains unverified. See the short [validation summary](docs/VALIDATION.md).
+The template is published in the official [Dokploy catalog](https://github.com/Dokploy/templates/tree/canary/blueprints/dokploy-actions-runner).
+See [current validation evidence](docs/VALIDATION.md), the
+[runtime/security review](docs/RUNTIME-REVIEW.md), and the
+[update procedure](docs/UPDATING.md). Retained upstream Node18/Node20 binaries and
+other image findings mean this is **not a vulnerability-free image**.
 
 ## Deploy in Dokploy
 
@@ -38,6 +39,11 @@ You need a Dokploy server with outbound HTTPS/DNS access, registry access to
 `ghcr.io`, permission to administer runners in GitHub, and enough disk, memory and
 CPU for your jobs. No inbound runner port or domain is needed. Size the host for
 the jobs you run; this template intentionally imposes no universal resource limit.
+
+Use **GitHub Actions Runner** from Dokploy’s template catalog, fill in its
+Environment values, and deploy in Compose mode. Catalog updates become available
+after the matching Dokploy PR is merged; existing services are not updated
+automatically. To use this exact revision before catalog publication:
 
 1. Create a **Docker Compose** service in a Dokploy project. Select **Compose**,
    not Stack, and use the **Raw** source.
@@ -65,8 +71,7 @@ the jobs you run; this template intentionally imposes no universal resource limi
    target repository's `.github/workflows/` directory and run it manually. Its
    labels must match the deployment.
 
-This project is not yet published in Dokploy's template catalog. For catalog
-maintainers, the self-contained blueprint also includes
+For catalog maintainers, the self-contained blueprint includes
 [template.toml](blueprints/dokploy-actions-runner/template.toml),
 [meta.json](blueprints/dokploy-actions-runner/meta.json) and an original SVG logo.
 Catalog imports generate `dokploy-${uuid}` names and leave the credential and
@@ -126,7 +131,9 @@ config`, `docker inspect` or `env` output containing real credentials.
 That file supplies Compose interpolation; it does **not** automatically inject
 variables into a container. This template explicitly maps `ACCESS_TOKEN` and the
 six configuration inputs under `environment:`. Required values use `${VAR:?message}`
-so an empty or missing PAT fails before container creation.
+so an empty or missing PAT fails before container creation. A fixed `PATH` also
+selects the image’s embedded Node24 before `/usr/bin/node`; arbitrary host `PATH`
+values are never forwarded.
 
 Do not remove that mapping or add `env_file: .env`. Forwarding the entire file also
 allows unrelated secrets and upstream behavior flags into the runner. The inline
@@ -152,6 +159,16 @@ check rejects unresolved placeholders and malformed values without printing them
 GitHub also adds `self-hosted`, `linux` and the real architecture label. Do not
 mislabel an ARM64 host as `x64`. Labels select jobs; they are not access controls.
 Runner groups and repository permissions control access.
+
+Default `node` now resolves to `/actions-runner/externals/node24/bin/node`. The
+distribution’s `/usr/bin/node` remains Node18 and must not be selected explicitly.
+Startup refuses a missing Node24 slot, an unexpected default path, or Node24 below
+24.22.1, including after a runner self-update. A future Node major migration
+requires template review. The embedded Node20 slots remain genuine Node20; there is no binary substitution.
+GitHub controls legacy JavaScript action migration to Node24. Upgrade actions to
+versions declaring `using: node24` and remove insecure Node opt-outs. For npm or a
+different supported build runtime, use `actions/setup-node` with an explicit
+version. PATH changes made by that action apply to subsequent workflow steps.
 
 Upstream behavior flags are deliberately fixed or omitted. Runner auto-updates
 remain enabled. `EPHEMERAL` and `DISABLE_AUTO_UPDATE` are **absent**: upstream treats
@@ -205,13 +222,16 @@ to retain. The healthcheck verifies the listener process only. Docker Compose do
 not automatically restart a container merely because its healthcheck is unhealthy.
 Logs rotate at three 10 MB files; monitor workspace disk use as jobs accumulate.
 
-The digest makes deployments reproducible. Auto-update covers the runner binary,
-not the OS or tools. Review upstream image releases, update the tag **and digest**,
-update the metadata version, validate, and redeploy while idle. Dependabot proposes
-image/development dependency updates; CI requires matching metadata, so image
-updates may need a manual metadata edit. Do not let a pin become an excuse to stop
-updating. GitHub documents update deadlines in its
-[runner reference](https://docs.github.com/en/actions/reference/runners/self-hosted-runners).
+The digest fixes the initial image, while runner self-updates may change its
+runner-owned `bin` and `externals` directories. They remain enabled. There are no
+local binary patches for an update to overwrite, and the fixed PATH follows the
+canonical Node24 directory. OS packages and other tools still require an image
+update and container recreation. A daily CI check detects newer runner/Node24
+releases and rebuilt image tags; Dependabot proposes image updates. Maintainers
+must review, test both architectures, update both repositories and arrange idle
+redeployment. Follow [UPDATING.md](docs/UPDATING.md); checks alone do not patch an
+installation. GitHub can stop assigning jobs after 30 days without a runner
+update, or immediately when a critical security update is required.
 
 ### Sharing a host and mixing runner types
 
@@ -236,7 +256,7 @@ For local deployment, copy `.env.example` to `.env`, restrict permissions with
 docker compose --env-file .env -p repo-ci-01 \
   -f blueprints/dokploy-actions-runner/docker-compose.yml up -d
 docker compose --env-file .env -p repo-ci-01 \
-  -f blueprints/dokploy-actions-runner/docker-compose.yml logs -f runner
+  -f blueprints/dokploy-actions-runner/docker-compose.yml logs -f dokploy-actions-runner
 ```
 
 Use different `-p` project names, environment files and `RUNNER_NAME` values for
@@ -254,10 +274,12 @@ python -m unittest discover -s tests -v
 # Optional: validate private deployment syntax without printing credentials.
 python scripts/validate.py --env-file .env
 # Needs a Docker daemon and registry access to pull the pinned image.
-python scripts/test_container.py
+python scripts/test_container.py --platform linux/arm64
+python scripts/runtime_inventory.py --platform linux/arm64
 ```
 
-CI runs the same checks on GitHub-hosted runners without GitHub credentials.
+CI runs the same checks on native GitHub-hosted AMD64 and ARM64 runners without
+GitHub credentials. Choose `linux/amd64` on an AMD64 development host.
 The container tests disable networking and substitute mock configuration, token
 and listener commands, while retaining the real pinned image and lifecycle
 entrypoint. They verify non-root execution, routing arguments, `.env` forwarding,
@@ -289,10 +311,20 @@ reports. Report image tag/digest, architecture, scope and redacted logs.
 ## Contributing and license
 
 The blueprint follows the upstream per-template directory and metadata layout.
-See [CONTRIBUTING.md](CONTRIBUTING.md) for validation and the path to a future
-`Dokploy/templates` contribution. The catalog preview/import is a separate check
+See [CONTRIBUTING.md](CONTRIBUTING.md) for validation and the process for matching
+`Dokploy/templates` updates. The catalog preview/import is a separate check
 from the tested Raw Compose deployment.
 
 Original configuration, scripts, documentation and logo are [MIT licensed](LICENSE).
 The external image and GitHub runner retain their own upstream licenses; this
 project neither distributes a fork nor claims to be an official GitHub image.
+
+### Compatibility when upgrading from v0.1.0
+
+The local blueprint now matches the published catalog: the service key is
+`dokploy-actions-runner`, and `template.toml` uses Dokploy’s array of `KEY=value`
+strings. Stop the old `runner` service before replacing its Compose definition;
+remove that old container before starting the renamed service to avoid overlapping
+registrations. Existing catalog installs already use the new service name.
+Default shell Node changes from 18 to 24; test applications and native modules.
+The seven operator inputs and their validation remain unchanged.

@@ -27,9 +27,9 @@ services:
       DISABLE_AUTOMATIC_DEREGISTRATION: "false"
       RUNNER_WORKDIR: /_work
       # Keep the PAT in the entrypoint shell for shutdown deregistration.
-      # Upstream un-exports it before starting the listener. See SECURITY.md.
+      # Upstream un-exports it before starting the listener. See the linked project security guide.
       UNSET_CONFIG_VARS: "false"
-    # Only validates configuration, then execs the upstream lifecycle handler.
+    # Validates configuration and the runtime floor, then execs upstream lifecycle.
     # Inline so Dokploy imports need no custom image or repository file mounts.
     # Double dollars defer expansion to the container, not Compose/Dokploy.
     entrypoint:
@@ -58,6 +58,14 @@ services:
             ;;
           *) fail 'RUNNER_SCOPE must be exactly repo or org' ;;
         esac
+        # Runtime gate: refuse fallback to distro Node after a runner self-update.
+        node_binary=/actions-runner/externals/node24/bin/node
+        [[ -x "$${node_binary}" ]] || fail 'The maintained Node24 runtime is missing; update the image'
+        [[ "$$(command -v node)" == "$${node_binary}" ]] || fail 'Default node must use the maintained Node24 runtime'
+        node_version="$$("$${node_binary}" --version)"
+        [[ "$${node_version}" =~ ^v24\.([0-9]+)\.([0-9]+)$$ ]] || fail 'The maintained Node24 runtime is required'
+        (( 10#$${BASH_REMATCH[1]} > 22 || (10#$${BASH_REMATCH[1]} == 22 && 10#$${BASH_REMATCH[2]} >= 1) )) || fail 'Node24 is below the security baseline; update the image'
+        # End runtime gate.
         exec /entrypoint.sh ./bin/Runner.Listener run --startuptype service
     # Local listener liveness only; does not prove GitHub connectivity/readiness.
     healthcheck:

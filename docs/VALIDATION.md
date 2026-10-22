@@ -1,5 +1,40 @@
 # Validation
 
+## Current image — 22 October 2026
+
+Runner 2.338.1, index `sha256:36782fe0e5994b301652408c32113a3562fabb1f0ead865ccc196d3e870f9109`.
+
+| Check | Result |
+| --- | --- |
+| Configuration and update/inventory regression suite | 12 tests pass, including malformed secrets, allowlist bypass attempts, unknown runtimes architecture mismatches and runtime-floor regressions |
+| Native AMD64 and ARM64 offline lifecycle CI | [Both pass](https://github.com/Simplarix/dokploy-actions-runner/actions/runs/39816774855); repo/org routing, non-root execution, graceful stop/restart, unexpected exit and hard-kill recovery |
+| Actual runner and Node executable inventory | Both architectures pass, including genuine Node20 retention and default Node24 24.22.1 |
+| Real GitHub jobs before restart | [Both pass](https://github.com/Simplarix/dokploy-actions-runner/actions/runs/39816886613) |
+| Real GitHub jobs after restart | [Both pass](https://github.com/Simplarix/dokploy-actions-runner/actions/runs/39817119686) |
+| Live registration and final graceful removal | Two unique repository runners registered; both disappeared from GitHub after stop; temporary containers removed |
+| Anonymous public image pull | Pass with empty Docker credential config |
+| Image vulnerability scans | Both completed; retained findings, not a clean-image result. See [review](RUNTIME-REVIEW.md) |
+
+The live jobs ran ARM64 natively in Docker Desktop and AMD64 under Rosetta.
+Separate offline CI runs used native GitHub-hosted machines for **both**
+architectures. Rosetta’s mocked-listener process-name healthcheck failed locally;
+the corresponding native AMD64 test passed. Emulated execution is not presented
+as native execution.
+
+Live jobs exercised pinned checkout/setup-node actions, Node24 main/post handlers,
+a Node20 declaration routed by GitHub to Node24, internal hashFiles, actual
+runtime versions, zero effective capabilities, no-new-privileges, non-root
+execution, and absence of an inherited PAT or Docker socket. This does not prove
+secret isolation from a malicious same-user job. The [structured live evidence](evidence/2026-10-22/live-smoke.json)
+records exact commits and runs without credentials.
+
+Remaining unperformed checks: live organization/custom-group registration and
+routing (no scoped org-admin credential); fresh Dokploy UI/catalog preview import
+(no isolated Dokploy test instance); observed runner self-update (none available);
+exhaustive third-party action compatibility; native AMD64 live jobs. The original
+17 October observations below concern the **previous image**, not this update.
+No existing deployment was changed.
+
 ## Live use — 17 October 2026
 
 A repository-scoped runner has been deployed through Dokploy and used successfully

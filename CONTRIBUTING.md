@@ -15,7 +15,7 @@ or `docs/setup-guide`, without a `codex/` prefix. Commit subjects use the form
 `fix: prevents empty runner credentials`: concise English, third-person singular
 present-tense verb, lowercase description, no final period.
 
-## Future Dokploy/templates PR
+## Updating the published Dokploy catalog
 
 1. Check the current upstream
    [contribution guidelines](https://github.com/Dokploy/templates/blob/canary/CONTRIBUTING.md)
@@ -24,10 +24,8 @@ present-tense verb, lowercase description, no final period.
    upstream checkout. The Compose file is self-contained. Keep the metadata as a
    single object in that directory; do not add or edit upstream's root `meta.json`.
 3. Preserve the logo, matching metadata ID/folder name, image version and links.
-   For the upstream copy, name the Compose service `dokploy-actions-runner` to
-   match its folder and express `config.env` as an array of `KEY=value` strings.
-   The standalone project uses `runner` and the equivalent environment table.
-   The image and inline startup/lifecycle behavior must remain identical.
+   Both repositories now use service `dokploy-actions-runner` and `config.env`
+   as an array of `KEY=value` strings. Keep the complete blueprint identical.
    No domains, custom networks, fixed container names or external scripts are needed.
    Compose uses the current spec without the obsolete top-level `version` field.
 4. Run upstream's `node build-scripts/generate-meta.js --check` and validate the
@@ -41,3 +39,7 @@ present-tense verb, lowercase description, no final period.
 
 Upstream explicitly requires contributor testing. Passing local mock tests alone
 does not justify claiming a fully tested deployment or opening that PR as ready.
+
+Runtime/image changes must follow [UPDATING.md](docs/UPDATING.md), update
+`runtime-policy.json`, and retain honest native/emulated/live evidence. The
+maintainer and official Dokploy blueprints must be updated together.

@@ -1,5 +1,19 @@
 # Changelog
 
+## Unreleased — 22 October 2026
+
+- Updates the public multi-architecture upstream image to Runner 2.338.1 and
+  embedded Node24 24.22.1, pinned by index digest.
+- Selects embedded Node24 for default shell steps without replacing Node20
+  binaries or disabling runner self-updates. Retained EOL runtimes and scanner
+  findings are documented explicitly.
+- Adds executable runtime inventories, daily update detection, native AMD64/ARM64
+  CI, and opt-in real GitHub JavaScript/lifecycle smoke tests.
+- Aligns the service name and TOML environment format with the published Dokploy
+  catalog; documents the local-service rename and Node18 → Node24 migration.
+- Adds an image update runbook and a prepared SimpleDPP rollback/migration plan.
+
+
 ## v0.1.0 — 17 October 2026
 
 First regular release of the community-maintained Dokploy template.

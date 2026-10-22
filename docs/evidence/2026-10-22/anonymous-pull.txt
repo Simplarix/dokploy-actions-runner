@@ -1,0 +1,5 @@
+Docker pull with an empty Docker configuration, no registry credentials, linux/arm64:
+ghcr.io/myoung34/docker-github-actions-runner@sha256:36782fe0e5994b301652408c32113a3562fabb1f0ead865ccc196d3e870f9109: Pulling from myoung34/docker-github-actions-runner
+Digest: sha256:36782fe0e5994b301652408c32113a3562fabb1f0ead865ccc196d3e870f9109
+Status: Image is up to date for ghcr.io/myoung34/docker-github-actions-runner@sha256:36782fe0e5994b301652408c32113a3562fabb1f0ead865ccc196d3e870f9109
+ghcr.io/myoung34/docker-github-actions-runner@sha256:36782fe0e5994b301652408c32113a3562fabb1f0ead865ccc196d3e870f9109

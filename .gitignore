@@ -5,3 +5,6 @@
 __pycache__/
 *.pyc
 .DS_Store
+
+# Installation-specific migration notes; never publish private infrastructure.
+local/

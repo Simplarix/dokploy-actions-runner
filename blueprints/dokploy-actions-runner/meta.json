@@ -9,9 +9,5 @@
     "website": "https://docs.github.com/en/actions/concepts/runners/self-hosted-runners",
     "docs": "https://github.com/Simplarix/dokploy-actions-runner#readme"
   },
-  "tags": [
-    "development",
-    "automation",
-    "ci"
-  ]
+  "tags": ["development", "automation", "ci"]
 }

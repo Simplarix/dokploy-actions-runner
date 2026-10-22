@@ -62,3 +62,38 @@ reporting feature if enabled, or contact the maintainers through their GitHub
 profile. Do not publish an exploit containing active credentials. Include the
 image digest, platform, affected configuration and a redacted reproduction. Image
 or runner vulnerabilities may also need reporting to their respective maintainers.
+
+## Runtime baseline and retained vulnerabilities
+
+The reviewed initial image is Runner 2.338.1 with embedded Node24 24.22.1.
+A fixed environment PATH makes that binary the default for shell steps. This
+avoids the distro Node18 default; it does not patch or remove `/usr/bin/node`,
+`libnode109`, Node20 20.20.2, or AMD64 Alpine slots. They remain upstream binaries,
+are inventoried, and must not be described as fixed. Node18 and Node20 are EOL.
+Explicit paths, workflow PATH changes, or upstream insecure runtime opt-outs can
+select them. This template is for trusted jobs, not an enforcement boundary
+against a malicious workflow.
+
+JavaScript action runtime selection belongs to GitHub’s runner, independently of
+PATH. An action declaring Node20 is not proof that Node20 executes: GitHub’s
+migration flags can select Node24. Conversely, a successful smoke action is not
+proof of compatibility for every legacy action. Upgrade actions to Node24 and
+verify your own workflows. The template never places Node24 in a Node20 slot.
+Alpine slots are used for container jobs; those jobs are unsupported here.
+
+The image scanner also reports vulnerabilities in additional shipped tools. See
+[the dated review and unfiltered finding summaries](docs/RUNTIME-REVIEW.md).
+A clean Node24 scan is not a clean-image claim or proof of non-exploitability.
+A deployment requiring removal of all EOL binaries or zero High/Critical image
+findings does not meet that policy with this template.
+
+Self-updates remain enabled and replace the upstream `externals` tree. Local
+binary replacements would be overwritten; this template makes none. Check the
+running versions after an update, because the initial digest does not attest the
+post-update filesystem. Follow [the image update process](docs/UPDATING.md) for OS
+and tool fixes as well as the [GitHub deadlines](https://docs.github.com/en/actions/reference/runners/self-hosted-runners).
+
+A startup runtime gate fails closed if the Node24 slot disappears, default `node`
+resolves elsewhere, or its version falls below 24.22.1. This prevents silent
+fallback after self-update/restart; it does not police workflow changes during a
+job. Future runtime-major migrations require a reviewed template update.

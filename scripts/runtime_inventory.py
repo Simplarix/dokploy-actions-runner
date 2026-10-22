@@ -53,8 +53,10 @@ def inventory(platform, image=None):
     args = ['docker', 'run', '--rm', '--pull', 'never', '--platform', platform,
             '--network', 'none', '--user', 'runner', '--cap-drop', 'ALL',
             '--security-opt', 'no-new-privileges:true', '--memory', '1g', '--cpus', '2',
-            '--pids-limit', '128', '--env', 'PATH=' + service['environment']['PATH'],
-            '--entrypoint', 'python3', '-i', image or service['image'], '-']
+            '--pids-limit', '128']
+    if not image:
+        args += ['--env', 'PATH=' + service['environment']['PATH']]
+    args += ['--entrypoint', 'python3', '-i', image or service['image'], '-']
     result = subprocess.run(args, input=PROBE, text=True, capture_output=True, timeout=180)
     if result.returncode:
         raise RuntimeError('Isolated runtime inventory failed: ' + result.stderr)

@@ -1,5 +1,9 @@
 # Upstream research
 
+For the current image, runtime routing, security findings and source revisions, see
+[the 22 October 2026 review](RUNTIME-REVIEW.md). The table below is historical.
+The local blueprint now follows the catalog’s service key and env-array format.
+
 Reviewed on **17 October 2026**, before implementation. These sources determined
 the configuration; they are not evidence of a live deployment.
 
