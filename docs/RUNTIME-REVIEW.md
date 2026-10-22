@@ -125,3 +125,22 @@ executed as non-root, without networking, in pinned official
 They returned 20.20.2 and 24.22.1; copied hashes match the inventory. This uses
 Rosetta emulation and does not enable container actions in the template.
 [Execution evidence](evidence/2026-10-22/alpine-execution.json).
+
+## Reproducing the scanner evidence
+
+With Grype 0.121.0 and a current recorded database:
+
+```bash
+grype registry:ghcr.io/myoung34/docker-github-actions-runner@sha256:340f69448f36fd361fc50d2aeef41bf3b4f0ddc93acaed858ccb14e7b4906ca2 -o json --file grype-amd64.json
+grype registry:ghcr.io/myoung34/docker-github-actions-runner@sha256:9c86519e95cf22aa23fabbd674f648baf9aaaa44b25df442efcc4ee9b90436d3 -o json --file grype-arm64.json
+```
+
+The checked-in summaries retain every match but omit unrelated scanner metadata.
+They record the full-output SHA-256 and database source/time. A newer database can
+change counts without any image change. Evidence hashes are listed in
+[SHA256SUMS](evidence/2026-10-22/SHA256SUMS).
+
+Tracking PRs: [maintainer #3](https://github.com/Simplarix/dokploy-actions-runner/pull/3)
+and [Dokploy #1255](https://github.com/Dokploy/templates/pull/1255). The Dokploy PR
+is a draft pending an isolated UI import; its CI and published preview-file checks
+have passed. The prepared image-upstream proposal is in [docs/upstream](upstream/).

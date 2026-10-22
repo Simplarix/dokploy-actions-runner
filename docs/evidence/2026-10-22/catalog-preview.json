@@ -1,0 +1,9 @@
+{
+  "url": "https://zfl4wless-fix-update-actions.templates-70k.pages.dev",
+  "commit": "20f092b67abfe07d4d12fa824fd6e31d4ad28d3f",
+  "compose_sha256": "bc5982acf69db535bc7a43d809844f2aa5e20bebb026bbecedb3cc127a40d5e6",
+  "toml_sha256": "5128693ba0c0fb7bc468aa2b442454379d565215096418766a9bb5a6c1beecff",
+  "exact_match_to_maintainer_blueprint": true,
+  "base64_json_roundtrip": true,
+  "dokploy_ui_import_tested": false
+}

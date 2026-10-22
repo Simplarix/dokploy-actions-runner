@@ -7,11 +7,12 @@ Runner 2.338.1, index `sha256:36782fe0e5994b301652408c32113a3562fabb1f0ead865ccc
 | Check | Result |
 | --- | --- |
 | Configuration and update/inventory regression suite | 13 tests pass, including malformed secrets, allowlist bypass attempts, unknown runtimes architecture mismatches and runtime-floor regressions |
-| Native AMD64 and ARM64 offline lifecycle CI | [Both pass](https://github.com/Simplarix/dokploy-actions-runner/actions/runs/39816774855); repo/org routing, non-root execution, graceful stop/restart, unexpected exit and hard-kill recovery |
+| Native AMD64 and ARM64 offline lifecycle CI | [Both pass](https://github.com/Simplarix/dokploy-actions-runner/actions/runs/39819581730); repo/org routing, non-root execution, graceful stop/restart, unexpected exit and hard-kill recovery |
 | Actual runner and Node executable inventory | Both architectures pass, including genuine Node20 retention and default Node24 24.22.1 |
-| Real GitHub jobs before restart | [Both pass](https://github.com/Simplarix/dokploy-actions-runner/actions/runs/39816886613) |
-| Real GitHub jobs after restart | [Both pass](https://github.com/Simplarix/dokploy-actions-runner/actions/runs/39817119686) |
+| Real GitHub jobs before restart | [Both pass](https://github.com/Simplarix/dokploy-actions-runner/actions/runs/39819634596) |
+| Real GitHub jobs after restart | [Both pass](https://github.com/Simplarix/dokploy-actions-runner/actions/runs/39819792280) |
 | Live registration and final graceful removal | Two unique repository runners registered; both disappeared from GitHub after stop; temporary containers removed |
+| Published catalog PR preview | Exact Compose/TOML bytes match; Base64 JSON roundtrip passes. [Evidence](evidence/2026-10-22/catalog-preview.json). UI import remains pending |
 | Anonymous public image pull | Pass with empty Docker credential config |
 | Image vulnerability scans | Both completed; retained findings, not a clean-image result. See [review](RUNTIME-REVIEW.md) |
 
@@ -25,8 +26,11 @@ Live jobs exercised pinned checkout/setup-node actions, Node24 main/post handler
 a Node20 declaration routed by GitHub to Node24, internal hashFiles, actual
 runtime versions, zero effective capabilities, no-new-privileges, non-root
 execution, and absence of an inherited PAT or Docker socket. This does not prove
-secret isolation from a malicious same-user job. The [structured live evidence](evidence/2026-10-22/live-smoke.json)
-records exact commits and runs without credentials.
+secret isolation from a malicious same-user job. The [structured live evidence](evidence/2026-10-22/live-smoke-runtime-gate.json)
+records exact commits and runs without credentials. Final live verification used
+commit `1874016ea7055d0a24c28adc201fe23b1c763bdf`; subsequent evidence-only edits
+do not change the tested runtime. Workflow selection matches the unique dispatch
+title, branch and commit, and checks that both jobs used this invocation’s runners.
 
 Remaining unperformed checks: live organization/custom-group registration and
 routing (no scoped org-admin credential); fresh Dokploy UI/catalog preview import
