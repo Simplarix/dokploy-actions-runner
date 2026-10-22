@@ -1,2 +1,0 @@
-# Keep machine-generated evidence available without obscuring source review.
-docs/evidence/**/*.json linguist-generated=true

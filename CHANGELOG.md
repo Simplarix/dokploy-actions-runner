@@ -11,7 +11,8 @@
   CI, and opt-in real GitHub JavaScript/lifecycle smoke tests.
 - Aligns the service name and TOML environment format with the published Dokploy
   catalog; documents the local-service rename and Node18 → Node24 migration.
-- Adds an image update runbook and prepared migration and rollback guidance.
+- Consolidates image updates, validation and rollback in one maintenance guide;
+  retains historical review/scans in the linked PR snapshot.
 
 ## v0.1.0 — 17 October 2026
 
@@ -33,7 +34,7 @@ First regular release of the community-maintained Dokploy template.
 
 No runtime configuration or image change was made since `v0.1.0-rc.1`. Docker
 container jobs/actions, service containers and local Docker builds are unsupported
-by the defaults. See [validation](docs/VALIDATION.md) and [security](SECURITY.md).
+by the defaults. See [validation](docs/MAINTENANCE.md#reviewed-baseline) and [security](SECURITY.md).
 
 ## v0.1.0-rc.1 — 17 October 2026
 

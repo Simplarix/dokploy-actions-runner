@@ -15,5 +15,5 @@ jobs:
         with:
           python-version: '3.12'
       - run: python -m pip install -r requirements-dev.txt
-      # Failed scheduled runs notify subscribed maintainers; see docs/UPDATING.md.
+      # Failed scheduled runs notify subscribed maintainers; see docs/MAINTENANCE.md.
       - run: python scripts/check_updates.py
