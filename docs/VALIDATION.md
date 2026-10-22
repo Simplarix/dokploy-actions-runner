@@ -12,7 +12,7 @@ Runner 2.338.1, index `sha256:36782fe0e5994b301652408c32113a3562fabb1f0ead865ccc
 | Real GitHub jobs before restart | [Both pass](https://github.com/Simplarix/dokploy-actions-runner/actions/runs/39819634596) |
 | Real GitHub jobs after restart | [Both pass](https://github.com/Simplarix/dokploy-actions-runner/actions/runs/39819792280) |
 | Live registration and final graceful removal | Two unique repository runners registered; both disappeared from GitHub after stop; temporary containers removed |
-| Published catalog PR preview | Exact Compose/TOML bytes match; Base64 JSON roundtrip passes. [Evidence](evidence/2026-10-22/catalog-preview.json). UI import remains pending |
+| Published catalog PR preview | Exact Compose/TOML bytes match; Base64 JSON roundtrip passes. [Evidence](evidence/2026-10-22/catalog-preview.json). The tester confirms all six Dokploy acceptance steps pass |
 | Anonymous public image pull | Pass with empty Docker credential config |
 | Image vulnerability scans | Both completed; retained findings, not a clean-image result. See [review](RUNTIME-REVIEW.md) |
 
@@ -32,10 +32,20 @@ commit `1874016ea7055d0a24c28adc201fe23b1c763bdf`; subsequent evidence-only edit
 do not change the tested runtime. Workflow selection matches the unique dispatch
 title, branch and commit, and checks that both jobs used this invocation’s runners.
 
-Remaining unperformed checks: live organization/custom-group registration and
-routing (no scoped org-admin credential); fresh Dokploy UI/catalog preview import
-(no isolated Dokploy test instance); observed runner self-update (none available);
-exhaustive third-party action compatibility; native AMD64 live jobs. The original
+### Tester-confirmed Dokploy acceptance — 22 October 2026
+
+The tester confirms that all six requested acceptance steps passed using the PR
+preview: Base64 import into a separate Compose service, environment setup and one
+Idle runner, a successful targeted smoke workflow with Node24, Stop → Deploy and
+another successful job without duplicate registration, graceful removal of the
+GitHub runner record, and test-service/token cleanup. This is user-reported live
+acceptance, not an independently captured deployment trace. The test architecture
+and repository/organization scope were not specified and are not inferred.
+
+Remaining unperformed or unestablished checks: live organization/custom-group
+routing beyond the scope-unspecified tester report; observed runner self-update
+(none available); exhaustive third-party action compatibility; independently
+recorded native AMD64 live jobs. The original
 17 October observations below concern the **previous image**, not this update.
 No existing deployment was changed.
 

@@ -5,5 +5,19 @@
   "toml_sha256": "5128693ba0c0fb7bc468aa2b442454379d565215096418766a9bb5a6c1beecff",
   "exact_match_to_maintainer_blueprint": true,
   "base64_json_roundtrip": true,
-  "dokploy_ui_import_tested": false
+  "dokploy_ui_import_tested": true,
+  "dokploy_acceptance": {
+    "evidence_type": "tester-confirmed; not independently captured",
+    "confirmed_on": "2026-10-22",
+    "scope": null,
+    "architecture": null,
+    "checks": [
+      "Base64 import from the PR preview into a separate Dokploy Compose test service",
+      "Environment configuration, deployment and exactly one Idle GitHub runner",
+      "Successful targeted smoke workflow with expected default Node24 version",
+      "Stop -> Deploy and successful subsequent smoke workflow without duplicate registration",
+      "Final graceful stop removes the GitHub runner record",
+      "Test service cleanup and test PAT revocation"
+    ]
+  }
 }

@@ -141,6 +141,8 @@ change counts without any image change. Evidence hashes are listed in
 [SHA256SUMS](evidence/2026-10-22/SHA256SUMS).
 
 Tracking PRs: [maintainer #3](https://github.com/Simplarix/dokploy-actions-runner/pull/3)
-and [Dokploy #1255](https://github.com/Dokploy/templates/pull/1255). The Dokploy PR
-is a draft pending an isolated UI import; its CI and published preview-file checks
-have passed. The prepared image-upstream proposal is in [docs/upstream](upstream/).
+and [Dokploy #1255](https://github.com/Dokploy/templates/pull/1255). The tester
+has confirmed the six-step Dokploy preview/import acceptance; its CI and
+published preview-file checks have passed. See the tester-confirmed section in
+[VALIDATION.md](VALIDATION.md) for the evidence boundary. The prepared
+image-upstream proposal is in [docs/upstream](upstream/).
