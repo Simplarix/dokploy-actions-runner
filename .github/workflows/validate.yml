@@ -1,14 +1,33 @@
 name: Validate template
+run-name: ${{ inputs.live_smoke && format('Runner smoke {0}', inputs.runner_label) || 'Validate template' }}
 on:
   push:
   pull_request:
   workflow_dispatch:
+    inputs:
+      live_smoke:
+        description: Run real GitHub jobs on explicitly provisioned disposable runners
+        type: boolean
+        default: false
+      runner_label:
+        description: Unique shared label of the two disposable smoke runners
+        type: string
+        default: unused
 permissions:
   contents: read
 jobs:
   validate:
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
+    if: ${{ !inputs.live_smoke }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - host: ubuntu-24.04
+            platform: linux/amd64
+          - host: ubuntu-24.04-arm
+            platform: linux/arm64
+    runs-on: ${{ matrix.host }}
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
@@ -20,4 +39,44 @@ jobs:
       - run: python scripts/validate.py
       - run: python -m unittest discover -s tests -v
       - name: Test pinned image offline (mock GitHub, no credentials)
-        run: python scripts/test_container.py
+        run: python scripts/test_container.py --platform '${{ matrix.platform }}'
+      - name: Inventory every shipped Node executable
+        run: python scripts/runtime_inventory.py --platform '${{ matrix.platform }}'
+  live-smoke:
+    if: ${{ github.event_name == 'workflow_dispatch' && inputs.live_smoke }}
+    strategy:
+      fail-fast: false
+      matrix:
+        arch: [X64, ARM64]
+    runs-on: [self-hosted, linux, '${{ inputs.runner_label }}', '${{ matrix.arch }}']
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Check actual runtime and security boundary
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(id -u)" -ne 0
+          test ! -S /var/run/docker.sock
+          test -z "${ACCESS_TOKEN:-}"
+          test "$(node --version)" = v24.22.1
+          test "$(command -v node)" = /actions-runner/externals/node24/bin/node
+          test "$(/actions-runner/bin/Runner.Listener --version)" = 2.338.1
+          test "$(awk '/^CapEff:/ {print $2}' /proc/self/status)" = 0000000000000000
+          test "$(awk '/^NoNewPrivs:/ {print $2}' /proc/self/status)" = 1
+          printf 'Runner %s; architecture %s; default Node %s\n' "$RUNNER_NAME" "$RUNNER_ARCH" "$(node --version)"
+      - name: Explicit Node24 action including main/post handlers
+        uses: ./tests/actions/node24
+      - name: Observe GitHub's handling of a Node20 action declaration
+        uses: ./tests/actions/node20
+      - name: Exercise runner-internal hashFiles
+        env:
+          FILE_HASH: ${{ hashFiles('runtime-policy.json') }}
+        run: test -n "$FILE_HASH"
+      - name: Install an explicit supported workflow runtime
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '24.22.1'
+      - run: node --version && npm --version

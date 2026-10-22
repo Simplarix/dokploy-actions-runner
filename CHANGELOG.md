@@ -1,5 +1,19 @@
 # Changelog
 
+## Unreleased — 22 October 2026
+
+- Updates the public multi-architecture upstream image to Runner 2.338.1 and
+  embedded Node24 24.22.1, pinned by index digest.
+- Selects embedded Node24 for default shell steps without replacing Node20
+  binaries or disabling runner self-updates. Retained EOL runtimes and scanner
+  findings are documented explicitly.
+- Adds executable runtime inventories, daily update detection, native AMD64/ARM64
+  CI, and opt-in real GitHub JavaScript/lifecycle smoke tests.
+- Aligns the service name and TOML environment format with the published Dokploy
+  catalog; documents the local-service rename and Node18 → Node24 migration.
+- Consolidates image updates, validation and rollback in one maintenance guide;
+  retains historical review/scans in the linked PR snapshot.
+
 ## v0.1.0 — 17 October 2026
 
 First regular release of the community-maintained Dokploy template.
@@ -20,7 +34,7 @@ First regular release of the community-maintained Dokploy template.
 
 No runtime configuration or image change was made since `v0.1.0-rc.1`. Docker
 container jobs/actions, service containers and local Docker builds are unsupported
-by the defaults. See [validation](docs/VALIDATION.md) and [security](SECURITY.md).
+by the defaults. See [validation](docs/MAINTENANCE.md#reviewed-baseline) and [security](SECURITY.md).
 
 ## v0.1.0-rc.1 — 17 October 2026
 

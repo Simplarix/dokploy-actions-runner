@@ -4,13 +4,13 @@ runner_name = "dokploy-${uuid}"
 [config]
 domains = []
 mounts = []
-
-[config.env]
-# Fill these in Dokploy Environment before the first deploy.
-ACCESS_TOKEN = ""
-RUNNER_SCOPE = "repo"
-REPO_URL = ""
-ORG_NAME = ""
-RUNNER_NAME = "${runner_name}"
-LABELS = "dokploy"
-RUNNER_GROUP = "Default"
+# Set a GitHub PAT and repository/organization target before deploying.
+env = [
+  "ACCESS_TOKEN=",
+  "RUNNER_SCOPE=repo",
+  "REPO_URL=",
+  "ORG_NAME=",
+  "RUNNER_NAME=${runner_name}",
+  "LABELS=dokploy",
+  "RUNNER_GROUP=Default",
+]

@@ -1,0 +1,18 @@
+{
+  "runner": "2.338.1",
+  "default_node": "v24.22.1",
+  "platforms": {
+    "linux/amd64": {
+      "/actions-runner/externals/node20/bin/node": "v20.20.2",
+      "/actions-runner/externals/node20_alpine/bin/node": "v20.20.2",
+      "/actions-runner/externals/node24/bin/node": "v24.22.1",
+      "/actions-runner/externals/node24_alpine/bin/node": "v24.22.1",
+      "/usr/bin/node": "v18.19.1"
+    },
+    "linux/arm64": {
+      "/actions-runner/externals/node20/bin/node": "v20.20.2",
+      "/actions-runner/externals/node24/bin/node": "v24.22.1",
+      "/usr/bin/node": "v18.19.1"
+    }
+  }
+}

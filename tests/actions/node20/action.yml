@@ -1,0 +1,4 @@
+name: Observe legacy action routing
+runs:
+  using: node20
+  main: ../node24/index.js

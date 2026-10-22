@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Exercise the real pinned image/entrypoint with mock GitHub calls, offline."""
 
+import argparse
 import json
 import os
 from pathlib import Path
@@ -62,6 +63,7 @@ test "$2" = --startuptype
 test "$3" = service
 test "$(id -u)" != 0
 test -z "${ACCESS_TOKEN:-}"
+test "$(node --version)" = v24.22.1
 test ! -S /var/run/docker.sock
 touch /_work/writable
 touch /opt/hostedtoolcache/writable
@@ -85,7 +87,7 @@ def check(condition, message):
         raise AssertionError(message)
 
 
-def scenario(scope):
+def scenario(scope, platform):
     project = "runner-offline-" + uuid.uuid4().hex[:12]
     with tempfile.TemporaryDirectory(prefix="runner-offline-") as directory:
         folder = Path(directory)
@@ -103,7 +105,8 @@ def scenario(scope):
                            "Runner.Listener": "/actions-runner/bin/Runner.Listener"}[name]
             mounts.append({"type": "bind", "source": str(path), "target": destination, "read_only": True})
         override = folder / "offline.json"
-        override.write_text(json.dumps({"services": {"runner": {"network_mode": "none", "volumes": mounts}}}))
+        override.write_text(json.dumps({"services": {"dokploy-actions-runner": {"network_mode": "none", "platform": platform, "volumes": mounts,
+                                                "cpus": 2, "mem_limit": "1g", "pids_limit": 128}}}))
         environment = {k: v for k, v in os.environ.items()
                        if k not in INPUTS and not k.startswith("COMPOSE_")}
         compose = ["docker", "compose", "-p", project, "--env-file", str(env_file),
@@ -128,17 +131,17 @@ def scenario(scope):
 
         try:
             dc("up", "-d", "--pull", "never")
-            container = dc("ps", "-q", "runner")
+            container = dc("ps", "-q", "dokploy-actions-runner")
             await_listening(1)
             # Exercise the template's actual liveness command in the container.
-            health = load_blueprint()["services"]["runner"]["healthcheck"]["test"][1]
+            health = load_blueprint()["services"]["dokploy-actions-runner"]["healthcheck"]["test"][1]
             run(["docker", "exec", container, "/bin/sh", "-c", health])
             security = json.loads(run(["docker", "inspect", container]))[0]
             check(security["Config"]["User"] == "runner", "Image is not running as runner")
             check(not security["HostConfig"]["Privileged"], "Privileged mode unexpectedly enabled")
             check(security["HostConfig"]["CapDrop"] == ["ALL"], "Capabilities are not dropped")
             # Graceful restart must deregister, fetch a fresh token, then configure.
-            dc("restart", "runner")
+            dc("restart", "dokploy-actions-runner")
             await_listening(2)
             log = events()
             check(log.count("configured:") == 2, "Restart did not configure again")
@@ -153,11 +156,11 @@ def scenario(scope):
             state = json.loads(run(["docker", "inspect", container]))[0]
             check(state["RestartCount"] >= 1, "Docker did not automatically restart the container")
             # Hard-kill bypasses traps. Fixed names + --replace recover on restart.
-            dc("kill", "-s", "SIGKILL", "runner")
-            dc("start", "runner")
+            dc("kill", "-s", "SIGKILL", "dokploy-actions-runner")
+            dc("start", "dokploy-actions-runner")
             await_listening(4)
             check(events().count("removed") == 2, "SIGKILL incorrectly appeared to deregister")
-            dc("stop", "runner")
+            dc("stop", "dokploy-actions-runner")
             # docker cp works after stop; do not restart just to inspect shutdown.
             run(["docker", "cp", f"{container}:/_work/test-events", str(folder / "events")])
             log = (folder / "events").read_text()
@@ -172,17 +175,20 @@ def scenario(scope):
 
 
 def main():
-    image = load_blueprint()["services"]["runner"]["image"]
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--platform", required=True, choices=["linux/amd64", "linux/arm64"])
+    args = parser.parse_args()
+    image = load_blueprint()["services"]["dokploy-actions-runner"]["image"]
     # No image pull/authentication occurs inside tests. Only this explicit step
     # needs registry access; all scenario containers have networking disabled.
-    run(["docker", "pull", image], timeout=600)
+    run(["docker", "pull", "--platform", args.platform, image], timeout=600)
     # Verify the shipped runner binary before replacing it with a mock listener.
-    version = run(["docker", "run", "--rm", "--network", "none", "--user", "runner",
+    version = run(["docker", "run", "--rm", "--platform", args.platform, "--network", "none", "--user", "runner",
                    "--cap-drop", "ALL", "--security-opt", "no-new-privileges:true",
                    "--entrypoint", "./bin/Runner.Listener", image, "--version"])
     check(version == image.split(":", 1)[1].split("-", 1)[0], "Runner binary version differs from image tag")
     for scope in ("repo", "org"):
-        scenario(scope)
+        scenario(scope, args.platform)
 
 
 if __name__ == "__main__":

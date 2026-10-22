@@ -71,15 +71,17 @@ class ConfigurationTests(unittest.TestCase):
             env_file = Path(directory) / ".env"
             env_file.write_text("\n".join(f"{key}={value}" for key, value in validate.FIXTURE.items()) +
                                 "\nUNRELATED_SECRET=do_not_forward\nDEBUG_OUTPUT=true\n"
-                                "RUN_AS_ROOT=true\nSTART_DOCKER_SERVICE=true\nEPHEMERAL=false\n")
+                                "RUN_AS_ROOT=true\nSTART_DOCKER_SERVICE=true\nEPHEMERAL=false\nDISABLE_AUTO_UPDATE=true\nPATH=/untrusted\n")
             config = validate.compose_config(env_file=env_file)
-            environment = config["services"]["runner"]["environment"]
+            environment = config["services"]["dokploy-actions-runner"]["environment"]
             self.assertEqual(environment["ACCESS_TOKEN"], validate.FIXTURE["ACCESS_TOKEN"])
             self.assertEqual(environment["RUN_AS_ROOT"], "false")
             self.assertEqual(environment["START_DOCKER_SERVICE"], "false")
             self.assertNotIn("UNRELATED_SECRET", environment)
             self.assertNotIn("DEBUG_OUTPUT", environment)
             self.assertNotIn("EPHEMERAL", environment)
+            self.assertNotIn("DISABLE_AUTO_UPDATE", environment)
+            self.assertTrue(environment["PATH"].startswith("/actions-runner/externals/node24/bin:"))
             # Compose's rendered config escapes dollars for serialization. Verify
             # the startup validation separately with the real environment values.
             self.assertEqual(validate.validate_startup(environment).returncode, 0)
@@ -87,7 +89,7 @@ class ConfigurationTests(unittest.TestCase):
     def test_independent_projects(self):
         first = validate.compose_config(validate.FIXTURE, project="runner-one")
         second = validate.compose_config(validate.FIXTURE | {"RUNNER_NAME": "runner-two", "LABELS": "other"}, project="runner-two")
-        a, b = (config["services"]["runner"] for config in (first, second))
+        a, b = (config["services"]["dokploy-actions-runner"] for config in (first, second))
         self.assertNotEqual(first["name"], second["name"])
         self.assertNotEqual(a["environment"]["RUNNER_NAME"], b["environment"]["RUNNER_NAME"])
         self.assertNotEqual(a["environment"]["LABELS"], b["environment"]["LABELS"])
