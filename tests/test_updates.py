@@ -8,6 +8,25 @@ from runtime_inventory import verify
 
 
 class UpdateTests(unittest.TestCase):
+    def test_prereleases_do_not_break_or_trigger_stable_node_monitoring(self):
+        policy = {'runner': '2.338.2', 'default_node': 'v24.22.1'}
+        release = {'tag_name': 'v2.338.2', 'published_at': '2026-10-26T14:45:12Z'}
+        image = 'image:2.338.2@sha256:old'
+        nodes = [{'version': v} for v in ('v27.0.0-alpha.0.0.0', 'v24.23.0-rc.1',
+                                          'v24.22.1', 'v24.9.0')]
+        self.assertEqual(findings(policy, image, release, nodes, 'sha256:old'), [])
+        messages = findings(policy, image, release, nodes + [{'version': 'v24.22.2'}], 'sha256:old')
+        self.assertEqual(len(messages), 1)
+        self.assertIn('v24.22.2', messages[0])
+
+    def test_missing_stable_node_major_fails_instead_of_silently_passing(self):
+        with self.assertRaisesRegex(ValueError, 'No stable Node 24 releases'):
+            findings({'runner': '2.338.2', 'default_node': 'v24.22.1'},
+                     'image:2.338.2@sha256:old',
+                     {'tag_name': 'v2.338.2', 'published_at': '2026-10-26T14:45:12Z'},
+                     [{'version': 'v27.0.0-alpha.0.0.0'}, {'version': 'v24.23.0-rc.1'}],
+                     'sha256:old')
+
     def test_every_update_channel_is_independent(self):
         policy = {'runner': '2.338.1', 'default_node': 'v24.22.1'}
         image = 'image:2.338.1@sha256:old'

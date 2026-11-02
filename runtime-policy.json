@@ -1,5 +1,5 @@
 {
-  "runner": "2.338.1",
+  "runner": "2.338.2",
   "default_node": "v24.22.1",
   "platforms": {
     "linux/amd64": {

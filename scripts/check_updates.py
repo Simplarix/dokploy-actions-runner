@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Fail CI when the pinned runner, default Node or image digest needs review."""
 import json
+import re
 import subprocess
 import urllib.request
 from pathlib import Path
@@ -23,7 +24,14 @@ def findings(policy, image, runner_release, node_releases, index_digest):
     if version(latest_runner) > version(policy['runner']):
         messages.append(f'Runner {latest_runner} released {runner_release["published_at"]}; review and deploy promptly (GitHub maximum: 30 days, critical updates sooner).')
     major = version(policy['default_node'])[0]
-    latest_node = max((entry['version'] for entry in node_releases if version(entry['version'])[0] == major), key=version)
+    # The public index also includes alpha/RC builds, including other majors.
+    # Filter before integer parsing so prereleases cannot break stable monitoring.
+    candidates = [entry['version'] for entry in node_releases
+                  if re.fullmatch(r'v\d+\.\d+\.\d+', entry['version'])
+                  and version(entry['version'])[0] == major]
+    if not candidates:
+        raise ValueError(f'No stable Node {major} releases found in the upstream index')
+    latest_node = max(candidates, key=version)
     if version(latest_node) > version(policy['default_node']):
         messages.append(f'Node {latest_node} is newer than the tested runtime; check the security release notes and upstream runner image.')
     if index_digest != image.split('@', 1)[1]:

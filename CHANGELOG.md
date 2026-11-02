@@ -1,12 +1,14 @@
 # Changelog
 
-## Unreleased — 22 October 2026
+## v0.2.0 — 2 November 2026
 
-- Updates the public multi-architecture upstream image to Runner 2.338.1 and
+- Updates the public multi-architecture upstream image to Runner 2.338.2 and
   embedded Node24 24.22.1, pinned by index digest.
 - Selects embedded Node24 for default shell steps without replacing Node20
   binaries or disabling runner self-updates. Retained EOL runtimes and scanner
   findings are documented explicitly.
+- Fixes update monitoring when the Node release index includes alpha/RC builds.
+- Updates the pinned setup-python action to 7.1.0.
 - Adds executable runtime inventories, daily update detection, native AMD64/ARM64
   CI, and opt-in real GitHub JavaScript/lifecycle smoke tests.
 - Aligns the service name and TOML environment format with the published Dokploy

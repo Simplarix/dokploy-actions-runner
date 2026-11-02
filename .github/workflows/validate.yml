@@ -63,7 +63,7 @@ jobs:
           test -z "${ACCESS_TOKEN:-}"
           test "$(node --version)" = v24.22.1
           test "$(command -v node)" = /actions-runner/externals/node24/bin/node
-          test "$(/actions-runner/bin/Runner.Listener --version)" = 2.338.1
+          test "$(/actions-runner/bin/Runner.Listener --version)" = 2.338.2
           test "$(awk '/^CapEff:/ {print $2}' /proc/self/status)" = 0000000000000000
           test "$(awk '/^NoNewPrivs:/ {print $2}' /proc/self/status)" = 1
           printf 'Runner %s; architecture %s; default Node %s\n' "$RUNNER_NAME" "$RUNNER_ARCH" "$(node --version)"
