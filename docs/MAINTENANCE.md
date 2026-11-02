@@ -5,53 +5,52 @@ Keep this blueprint and the official `Dokploy/templates:canary` catalog entry in
 
 ## Reviewed baseline
 
-Reviewed on **22 October 2026**:
+Reviewed on **2 November 2026** for **v0.2.0**:
 
 | Component | Result |
 | --- | --- |
-| Upstream image | `ghcr.io/myoung34/docker-github-actions-runner:2.338.1-ubuntu-noble` |
-| Multi-architecture index | `sha256:36782fe0e5994b301652408c32113a3562fabb1f0ead865ccc196d3e870f9109` |
-| Runner / default shell Node | 2.338.1 / 24.22.1 via `externals/node24/bin/node` |
+| Upstream image | `ghcr.io/myoung34/docker-github-actions-runner:2.338.2-ubuntu-noble` |
+| Multi-architecture index | `sha256:23e3a4a1da30de5b462ad0ae13d901288e803a688075c3b9b5bb79b7148c07fa` |
+| Runner / default shell Node | 2.338.2 / 24.22.1 via `externals/node24/bin/node` |
 | Retained runtimes | Distro Node18 18.19.1, embedded Node20 20.20.2; AMD64 also has Node20/24 musl slots; ARM64 has no Alpine slots |
-| Scanner | Grype 0.121.0, database built 2026-10-22T06:29:52Z |
-| Scanner matches, each architecture | 25 Critical, 181 High, 935 Medium, 138 Low, 11 Negligible, 5 Unknown; zero matches for Node24 24.22.1 in that database |
+| Scanner | Grype 0.121.1, database built 2026-11-02T06:26:52Z |
+| Scanner matches, each architecture | 26 Critical, 170 High, 980 Medium, 137 Low, 11 Negligible; zero matches for Node24 24.22.1 in that database |
 
-The old image had embedded Node24 24.21.0 and default shell Node18. The update
-selects patched Node24 and guards its startup version; it does not remove the
-other vulnerable components. Match counts include duplicate components and do not
-establish exploitability or complete vulnerability freedom. See [SECURITY.md](../SECURITY.md).
-The exact runtime executable expectations are maintained in
+Version 0.1.0 used embedded Node24 24.21.0 and default shell Node18. The updated
+PATH and startup guard select patched Node24 but do not remove other vulnerable
+components. Scan counts include duplicate components and are not proof of
+exploitability or vulnerability freedom; database changes affect comparisons.
+See [SECURITY.md](../SECURITY.md) and the expected executable inventory in
 [runtime-policy.json](../runtime-policy.json).
 
-**Validation:** 13 regression tests and native AMD64/ARM64 offline lifecycle CI
-[passed](https://github.com/Simplarix/dokploy-actions-runner/actions/runs/39819581730).
-Real GitHub jobs [before](https://github.com/Simplarix/dokploy-actions-runner/actions/runs/39819634596)
-and [after restart](https://github.com/Simplarix/dokploy-actions-runner/actions/runs/39819792280)
-passed with checkout/setup-node, Node24 main/post handlers, a Node20 declaration
-routed to Node24, internal hashFiles and the security defaults. Both test runners
-deregistered and were removed. Live ARM64 was native in Docker Desktop; live AMD64
-and separate musl-binary execution used Rosetta. The emulated mock-listener
-healthcheck failed locally; the corresponding native AMD64 CI test passed.
+**Validation:** 15 regression tests and native AMD64/ARM64 offline lifecycle CI
+[passed](https://github.com/Simplarix/dokploy-actions-runner/actions/runs/41537288411).
+Real GitHub jobs [before](https://github.com/Simplarix/dokploy-actions-runner/actions/runs/41538035551)
+and [after restart](https://github.com/Simplarix/dokploy-actions-runner/actions/runs/41538568183)
+passed with checkout/setup-node, Node24 main/post handlers, a Node20
+declaration routed to Node24, internal hashFiles, restart and graceful deregistration.
+Live ARM64 runs natively in Docker Desktop and AMD64 uses Rosetta; this is separate
+from native CI. All Node executable hashes, including AMD64 Alpine variants, match
+the versions tested on 22 October; the previous musl execution proof still applies.
 
-The tester confirmed all six Dokploy preview acceptance steps: Base64 import,
-configuration/one Idle runner, successful smoke job with Node24, Stop → Deploy and
-another successful job without duplicate registration, graceful deregistration,
-and service/token cleanup. Test architecture and repo/org scope were not specified.
-Live org/custom-group routing beyond that report, native AMD64 live jobs and an
-actual runner self-update remain unverified; no self-update was available to observe.
+The tester confirmed all six Dokploy import/operation acceptance steps for the
+2.338.1 preview on 22 October. The 2.338.2 preview files and metadata are verified,
+but a fresh Dokploy UI deployment of 2.338.2 is not claimed. The tester's architecture
+and repo/org scope were unspecified. Live custom-group routing, native AMD64 live
+jobs and an actual runner self-update remain unverified.
 
-The complete dated review, source revisions, per-architecture manifests, binary
-hashes, scans, preview checks and prepared upstream proposal remain in the
-[reviewed PR snapshot](https://github.com/Simplarix/dokploy-actions-runner/tree/8aecb91b31c83ad48d64aec146616206e962ed97/docs)
-and [PR #3](https://github.com/Simplarix/dokploy-actions-runner/pull/3).
-They are historical evidence, not current deployment state. Future large reports
-belong in linked release/CI artifacts, with a short summary here.
+Current per-architecture manifests, inventories, full scanner-match summaries,
+GitHub smoke results and checksums are attached to the
+[v0.2.0 release](https://github.com/Simplarix/dokploy-actions-runner/releases/tag/v0.2.0).
+The [22 October snapshot](https://github.com/Simplarix/dokploy-actions-runner/tree/8aecb91b31c83ad48d64aec146616206e962ed97/docs)
+retains the earlier review and prepared upstream proposal. Keep future large
+reports in release/CI artifacts and only their current summary here.
 
 ## Detect and review updates
 
 - After merge to the default branch, `check-updates.yml` checks daily for newer
   Runner Core/Node24 releases and a rebuilt upstream tag digest. Network/parser
-  errors also fail it. Subscribe to failures and keep schedules enabled; GitHub
+  errors also fail it. Alpha/RC entries are excluded before stable-version parsing. Subscribe to failures and keep schedules enabled; GitHub
   can disable schedules on inactive public repositories. Detection does not deploy.
 - Dependabot proposes weekly image updates. Also watch
   [runner](https://github.com/actions/runner/releases),
@@ -63,6 +62,13 @@ belong in linked release/CI artifacts, with a short summary here.
   within 30 days and can stop queuing jobs sooner for critical fixes; see its
   [runner reference](https://docs.github.com/en/actions/reference/runners/self-hosted-runners).
   These are maintenance responsibilities, not an automatic rollout guarantee.
+
+The repaired monitor currently reports a genuine upstream gap: Node 24.22.2 is
+available, but Runner 2.338.2 still bundles 24.22.1. This remains tracked in
+[issue #6](https://github.com/Simplarix/dokploy-actions-runner/issues/6); the alert
+is not suppressed. Node's index marks 24.22.2 as a non-security release, which is
+not a blanket safety assessment. Adopt it through a tested maintained upstream
+image rather than a local binary overlay.
 
 ## Validate and publish an image update
 
