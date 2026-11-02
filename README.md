@@ -9,7 +9,7 @@ Self-hosted GitHub Actions runners for Dokploy, community-maintained by
 repository or organization runner using the maintained
 [myoung34 image](https://github.com/myoung34/docker-github-actions-runner).
 
-- Ubuntu 24.04, Runner **2.338.1**, pinned to a multi-architecture image digest.
+- Ubuntu 24.04, Runner **2.338.2**, pinned to a multi-architecture image digest.
 - Native `linux/amd64` and `linux/arm64`; default shell Node **24.22.1**.
 - Non-root, all capabilities dropped, `no-new-privileges` enabled.
 - No privileged mode, Docker socket, host mounts or published ports.
