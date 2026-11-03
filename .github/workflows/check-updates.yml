@@ -15,5 +15,7 @@ jobs:
         with:
           python-version: '3.12'
       - run: python -m pip install -r requirements-dev.txt
-      # Failed scheduled runs notify subscribed maintainers; see docs/MAINTENANCE.md.
-      - run: python scripts/check_updates.py
+      # Ordinary Node releases warn; security/runner/image updates fail and notify
+      # subscribed maintainers. See docs/MAINTENANCE.md.
+      - name: Check upstream runtime updates
+        run: python scripts/check_updates.py

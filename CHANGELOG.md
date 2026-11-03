@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased
+
+- Reports ordinary Node updates as workflow warnings and in the job summary
+  while retaining failures for Node security updates, unknown security metadata,
+  Runner/image changes and technical errors. Checks every newer stable Node
+  release so later ordinary releases cannot hide pending security updates.
+
 ## v0.2.0 — 2 November 2026
 
 - Updates the public multi-architecture upstream image to Runner 2.338.2 and
