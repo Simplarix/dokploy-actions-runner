@@ -49,8 +49,14 @@ reports in release/CI artifacts and only their current summary here.
 ## Detect and review updates
 
 - After merge to the default branch, `check-updates.yml` checks daily for newer
-  Runner Core/Node24 releases and a rebuilt upstream tag digest. Network/parser
-  errors also fail it. Alpha/RC entries are excluded before stable-version parsing. Subscribe to failures and keep schedules enabled; GitHub
+  Runner Core/Node24 releases and a rebuilt upstream tag digest. Runner/image
+  changes and newer Node releases marked `security: true` fail the check. Node
+  releases explicitly marked `security: false` produce visible workflow warnings
+  and a job summary without failing it; review these for adoption through a maintained
+  upstream image. Missing/invalid security metadata and network/parser errors fail
+  the check. Every newer stable release in the current Node major is checked, so a
+  later ordinary release cannot hide an intervening security release. Alpha/RC
+  entries are excluded before stable-version parsing. Subscribe to failures and keep schedules enabled; GitHub
   can disable schedules on inactive public repositories. Detection does not deploy.
 - Dependabot proposes weekly image updates. Also watch
   [runner](https://github.com/actions/runner/releases),
@@ -63,12 +69,14 @@ reports in release/CI artifacts and only their current summary here.
   [runner reference](https://docs.github.com/en/actions/reference/runners/self-hosted-runners).
   These are maintenance responsibilities, not an automatic rollout guarantee.
 
-The repaired monitor currently reports a genuine upstream gap: Node 24.22.2 is
+The monitor currently reports a genuine upstream gap: Node 24.22.2 is
 available, but Runner 2.338.2 still bundles 24.22.1. This remains tracked in
-[issue #6](https://github.com/Simplarix/dokploy-actions-runner/issues/6); the alert
-is not suppressed. Node's index marks 24.22.2 as a non-security release, which is
-not a blanket safety assessment. Adopt it through a tested maintained upstream
-image rather than a local binary overlay.
+[issue #6](https://github.com/Simplarix/dokploy-actions-runner/issues/6) and is shown
+as a workflow warning because Node's index explicitly marks 24.22.2 as
+`security: false`. That flag is not a blanket safety assessment or a vulnerability
+scan. The tested baseline stays at the actual bundled 24.22.1; warnings do not
+change runtime policy, the startup floor or deployed binaries. Adopt the update
+through a tested maintained upstream image rather than a local binary overlay.
 
 ## Validate and publish an image update
 
