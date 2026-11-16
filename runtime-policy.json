@@ -1,12 +1,12 @@
 {
   "runner": "2.338.2",
-  "default_node": "v24.22.2",
+  "default_node": "v24.22.3",
   "platforms": {
     "linux/amd64": {
-      "/actions-runner/externals/node24/bin/node": "v24.22.2"
+      "/actions-runner/externals/node24/bin/node": "v24.22.3"
     },
     "linux/arm64": {
-      "/actions-runner/externals/node24/bin/node": "v24.22.2"
+      "/actions-runner/externals/node24/bin/node": "v24.22.3"
     }
   }
 }

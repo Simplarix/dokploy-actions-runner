@@ -85,7 +85,7 @@ test "$2" = --startuptype
 test "$3" = service
 test "$(id -u)" != 0
 test -z "${ACCESS_TOKEN:-}"
-test "$(node --version)" = v24.22.2
+test "$(node --version)" = v24.22.3
 test ! -S /var/run/docker.sock
 touch /_work/writable
 touch /opt/hostedtoolcache/writable

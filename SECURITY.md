@@ -38,7 +38,7 @@ The lifecycle supervisor retains the PAT for deregistration. Keep the local
 ## Runtime and image limits
 
 The fixed PATH selects the embedded Node24 for shell steps. The template
-rejects versions below 24.22.2 and the image entrypoint checks its exact
+rejects versions below 24.22.3 and the image entrypoint checks its exact
 build-time runtime version. GitHub selects JavaScript action runtimes separately
 and routes legacy Node20 declarations to Node24. The current image includes
 only the Node24 Linux executable.

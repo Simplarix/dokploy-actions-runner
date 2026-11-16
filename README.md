@@ -9,7 +9,7 @@ Self-hosted GitHub Actions runners for Dokploy, community-maintained by
 repository or organization runner using the [image built by this project](image/Dockerfile).
 
 - Ubuntu 24.04, Runner **2.338.2**, pinned to a multi-architecture image digest.
-- Native `linux/amd64` and `linux/arm64`; default shell Node **24.22.2**.
+- Native `linux/amd64` and `linux/arm64`; default shell Node **24.22.3**.
 - Non-root, all capabilities dropped, `no-new-privileges` enabled.
 - No privileged mode, Docker socket, host mounts or published ports.
 
@@ -124,7 +124,7 @@ names; identical labels form a pool. Do not scale replicas with the same name:
 replacement registration can disconnect the other runner.
 
 Default shell `node` uses `/actions-runner/externals/node24/bin/node`. Startup
-rejects a missing slot, another default path or Node24 below 24.22.2. JavaScript
+rejects a missing slot, another default path or Node24 below 24.22.3. JavaScript
 action runtime selection is controlled separately by GitHub. Prefer Node24 actions;
 use `actions/setup-node` with an explicit version for npm or a build runtime.
 

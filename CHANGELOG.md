@@ -3,7 +3,7 @@
 ## Unreleased
 
 - Switches to a first-party Ubuntu image with Runner 2.338.2, embedded Node
-  24.22.2 and Git LFS 3.8.1. Removes the unused Node20 and Alpine Node slots.
+  24.22.3 and Git LFS 3.8.1. Removes the unused Node20 and Alpine Node slots.
 - Replaces Runner self-updates with digest-pinned image updates.
 
 - Reports ordinary Node updates as workflow warnings and in the job summary
