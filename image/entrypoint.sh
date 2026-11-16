@@ -35,7 +35,7 @@ shutdown() {
 cleanup() {
   if [[ "$registered" == true ]]; then
     local token
-    if ! token=$(get_token remove) || ! ./config.sh remove --unattended --token "$token"; then
+    if ! token=$(get_token remove) || ! ./config.sh remove --token "$token"; then
       echo 'Runner deregistration failed. Check the runner record in GitHub.' >&2
     fi
   fi

@@ -34,9 +34,8 @@ printf '{"token":"%s"}\\n' "$token"
 set -eu
 test -z "${ACCESS_TOKEN:-}"
 if [[ "$1" == remove ]]; then
-  test "$2" = --unattended
-  test "$3" = --token
-  test "$4" = offline_removal
+  test "$2" = --token
+  test "$3" = offline_removal
   printf 'removed\\n' >> /_work/test-events
   rm -f .runner
   exit 0

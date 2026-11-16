@@ -9,8 +9,8 @@ Reviewed on **16 November 2026** for the first-party image.
 
 | Component | Result |
 | --- | --- |
-| Image | GHCR package `simplarix/dokploy-actions-runner`, tag `2.338.2-node24.22.3-ubuntu-noble-r1` |
-| Multi-architecture index | `sha256:15106e016f3714ebbb6eea749d39ee4b4f51403e0da546fd34d5779daa85d6a4` |
+| Image | GHCR package `simplarix/dokploy-actions-runner`, tag `2.338.2-node24.22.3-ubuntu-noble-r2` |
+| Multi-architecture index | `sha256:67a0863b831643700c8a2870b326d6451e131fd21a69535aa29aa7693b3adad2` |
 | Runner and default Node | 2.338.2 and 24.22.3 via `externals/node24/bin/node` |
 | Git LFS | 3.8.1 from the official release |
 | Scanner | Grype 0.121.1, database built 2026-11-16T06:30:54Z |
