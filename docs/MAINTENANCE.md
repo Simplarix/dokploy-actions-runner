@@ -81,12 +81,12 @@ by deploying a tested image built with the new version.
 ## First-party image candidate
 
 `image/Dockerfile` uses a digest-pinned Ubuntu 24.04 base and the official
-GitHub Runner and Node.js archives. Both downloads have a pinned SHA-256 per
+GitHub Runner, Node.js and Git LFS archives, each pinned by SHA-256 per
 architecture. We can rebuild the image with a newer Node24 or Ubuntu patch set
 while keeping the reviewed GitHub Runner version. Runner releases still come
-from GitHub. The image contains the genuine Node20 Linux compatibility slot
-from GitHub's distribution. Alpine slots are omitted because this template
-supports Ubuntu shell jobs.
+from GitHub. The candidate ships only the Node24 Linux runtime. GitHub routes
+legacy Node20 action declarations to Node24, which the live smoke workflow
+checks. Alpine slots are unnecessary for the Ubuntu shell jobs supported here.
 
 The candidate registers with `--disableupdate` so a GitHub Runner self-update
 cannot overwrite the Node version installed at build time. The image maintainer

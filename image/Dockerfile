@@ -9,26 +9,30 @@ RUN apt-get update \
 
 RUN set -eu; \
     case "$TARGETARCH" in \
-      amd64) arch=x64; runner_sha=baebf204307bac6193480852732f0aba2ae97b6c5597c244f4d5558390147c40; node_sha=48cc0e21e048790e54c0cf5749c2725005313d652651c40b7a21feb9697aaf75 ;; \
-      arm64) arch=arm64; runner_sha=670adb2f268fe21dcbb58b3db0e0aa9d5b3bddfe2c651481336e561ff86de945; node_sha=eb187837a2230d4047161ac0be008584e16b46f726e9c9490ee35dc6b17d9ba8 ;; \
+      amd64) arch=x64; runner_sha=baebf204307bac6193480852732f0aba2ae97b6c5597c244f4d5558390147c40; node_sha=48cc0e21e048790e54c0cf5749c2725005313d652651c40b7a21feb9697aaf75; lfs_sha=e72cf723a4a660438862282e8aecf3885fc8123e88bfcad534cf6b941a354b75 ;; \
+      arm64) arch=arm64; runner_sha=670adb2f268fe21dcbb58b3db0e0aa9d5b3bddfe2c651481336e561ff86de945; node_sha=eb187837a2230d4047161ac0be008584e16b46f726e9c9490ee35dc6b17d9ba8; lfs_sha=67895dd77b63329796bc5efdd47b57f218e1f7b98717ebaf936a8238dbcaec0f ;; \
       *) echo "Unsupported architecture: $TARGETARCH" >&2; exit 1 ;; \
     esac; \
-    runner=2.338.2; node=24.22.2; \
+    runner=2.338.2; node=24.22.2; lfs=3.8.1; \
     curl -fsSL --retry 3 -o /tmp/runner.tar.gz "https://github.com/actions/runner/releases/download/v${runner}/actions-runner-linux-${arch}-${runner}.tar.gz"; \
     curl -fsSL --retry 3 -o /tmp/node.tar.xz "https://nodejs.org/dist/v${node}/node-v${node}-linux-${arch}.tar.xz"; \
-    printf '%s  %s\n' "$runner_sha" /tmp/runner.tar.gz "$node_sha" /tmp/node.tar.xz | sha256sum -c -; \
+    curl -fsSL --retry 3 -o /tmp/git-lfs.tar.gz "https://github.com/git-lfs/git-lfs/releases/download/v${lfs}/git-lfs-linux-${TARGETARCH}-v${lfs}.tar.gz"; \
+    printf '%s  %s\n' "$runner_sha" /tmp/runner.tar.gz "$node_sha" /tmp/node.tar.xz "$lfs_sha" /tmp/git-lfs.tar.gz | sha256sum -c -; \
+    tar -xzf /tmp/git-lfs.tar.gz -C /tmp --strip-components=1 "git-lfs-${lfs}/git-lfs"; \
     mkdir /actions-runner; \
     tar -xzf /tmp/runner.tar.gz -C /actions-runner --no-same-owner; \
-    rm -rf /actions-runner/externals/node24 /actions-runner/externals/node24_alpine /actions-runner/externals/node20_alpine; \
+    rm -rf /actions-runner/externals/node20 /actions-runner/externals/node24 /actions-runner/externals/node24_alpine /actions-runner/externals/node20_alpine; \
     mkdir /actions-runner/externals/node24; \
     tar -xJf /tmp/node.tar.xz -C /actions-runner/externals/node24 --strip-components=1 --no-same-owner; \
     printf 'v%s\n' "$node" > /runner-node-version
 
 FROM base
 
+LABEL org.opencontainers.image.source="https://github.com/Simplarix/dokploy-actions-runner"
+
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
-        ca-certificates curl git git-lfs jq libgcc-s1 libgssapi-krb5-2 \
+        ca-certificates curl git jq libgcc-s1 libgssapi-krb5-2 \
         libicu74 liblttng-ust1t64 libssl3t64 libstdc++6 procps python3 tini \
         unzip xz-utils zip zlib1g \
     && rm -rf /var/lib/apt/lists/* \
@@ -36,6 +40,7 @@ RUN apt-get update \
     && install -d -o runner -g runner /actions-runner /_work /opt/hostedtoolcache
 
 COPY --from=downloads /actions-runner/ /actions-runner/
+COPY --from=downloads /tmp/git-lfs /usr/local/bin/git-lfs
 COPY --from=downloads /runner-node-version /etc/runner-node-version
 COPY --chmod=755 entrypoint.sh token.sh /
 RUN chown runner:runner /actions-runner
