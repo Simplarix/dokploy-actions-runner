@@ -9,11 +9,11 @@ RUN apt-get update \
 
 RUN set -eu; \
     case "$TARGETARCH" in \
-      amd64) arch=x64; runner_sha=baebf204307bac6193480852732f0aba2ae97b6c5597c244f4d5558390147c40; node_sha=48cc0e21e048790e54c0cf5749c2725005313d652651c40b7a21feb9697aaf75; lfs_sha=e72cf723a4a660438862282e8aecf3885fc8123e88bfcad534cf6b941a354b75 ;; \
-      arm64) arch=arm64; runner_sha=670adb2f268fe21dcbb58b3db0e0aa9d5b3bddfe2c651481336e561ff86de945; node_sha=eb187837a2230d4047161ac0be008584e16b46f726e9c9490ee35dc6b17d9ba8; lfs_sha=67895dd77b63329796bc5efdd47b57f218e1f7b98717ebaf936a8238dbcaec0f ;; \
+      amd64) arch=x64; runner_sha=baebf204307bac6193480852732f0aba2ae97b6c5597c244f4d5558390147c40; node_sha=4f2b175a6d53a5c617a80dba2676238a0688cef28c6da4eba35c7d844e66fcfb; lfs_sha=e72cf723a4a660438862282e8aecf3885fc8123e88bfcad534cf6b941a354b75 ;; \
+      arm64) arch=arm64; runner_sha=670adb2f268fe21dcbb58b3db0e0aa9d5b3bddfe2c651481336e561ff86de945; node_sha=6e51a2ada00f0011cc266f65d98922b403d7ad88f809ca2aa615a5fe1ce6e86c; lfs_sha=67895dd77b63329796bc5efdd47b57f218e1f7b98717ebaf936a8238dbcaec0f ;; \
       *) echo "Unsupported architecture: $TARGETARCH" >&2; exit 1 ;; \
     esac; \
-    runner=2.338.2; node=24.22.2; lfs=3.8.1; \
+    runner=2.338.2; node=24.22.3; lfs=3.8.1; \
     curl -fsSL --retry 3 -o /tmp/runner.tar.gz "https://github.com/actions/runner/releases/download/v${runner}/actions-runner-linux-${arch}-${runner}.tar.gz"; \
     curl -fsSL --retry 3 -o /tmp/node.tar.xz "https://nodejs.org/dist/v${node}/node-v${node}-linux-${arch}.tar.xz"; \
     curl -fsSL --retry 3 -o /tmp/git-lfs.tar.gz "https://github.com/git-lfs/git-lfs/releases/download/v${lfs}/git-lfs-linux-${TARGETARCH}-v${lfs}.tar.gz"; \

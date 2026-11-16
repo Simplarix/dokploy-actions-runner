@@ -153,7 +153,7 @@ def scenario(scope, platform, candidate_image):
                    "cpus": 2, "mem_limit": "1g", "pids_limit": 128}
         if candidate_image:
             service.update(image=candidate_image, init=True,
-                           environment={"CANDIDATE_IMAGE": "true", "EXPECTED_NODE": "v24.22.2"})
+                           environment={"CANDIDATE_IMAGE": "true", "EXPECTED_NODE": "v24.22.3"})
         override.write_text(json.dumps({"services": {"dokploy-actions-runner": service}}))
         environment = {k: v for k, v in os.environ.items()
                        if k not in INPUTS and not k.startswith("COMPOSE_")}
