@@ -22,9 +22,9 @@ handling. The workflow uses Git LFS as a client and the template publishes no
 ports. Scanner matches identify components by version and do not establish reachability.
 
 Native AMD64/ARM64 offline and inventory CI passed in the
-[validation workflow](https://github.com/Simplarix/dokploy-actions-runner/actions/runs/43945570404).
-Real GitHub jobs passed [before](https://github.com/Simplarix/dokploy-actions-runner/actions/runs/43946412735)
-and [after restart](https://github.com/Simplarix/dokploy-actions-runner/actions/runs/43946618333).
+[validation workflow](https://github.com/Simplarix/dokploy-actions-runner/actions/runs/43951585995).
+Real GitHub jobs passed [before](https://github.com/Simplarix/dokploy-actions-runner/actions/runs/43952263576)
+and [after restart](https://github.com/Simplarix/dokploy-actions-runner/actions/runs/43952463710).
 Those runs tested repository registration, Node24 main/post handlers, a legacy
 Node20 declaration routed to Node24, internal hashFiles, setup-node and graceful
 deregistration on native ARM64 and emulated AMD64 in Docker Desktop. Org
