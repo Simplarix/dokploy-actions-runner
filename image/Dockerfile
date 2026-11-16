@@ -61,6 +61,7 @@ RUN apt-get update \
 
 COPY --from=downloads /actions-runner/ /actions-runner/
 COPY --from=git-lfs /git-lfs /usr/local/bin/git-lfs
+COPY --from=git-lfs /src/LICENSE.md /usr/local/share/doc/git-lfs/LICENSE.md
 COPY --from=downloads /runner-node-version /etc/runner-node-version
 COPY --chmod=755 entrypoint.sh token.sh /
 RUN chown runner:runner /actions-runner
