@@ -13,12 +13,6 @@ import uuid
 from validate import COMPOSE, FIXTURE, INPUTS, load_blueprint
 
 MOCKS = {
-    "token.sh": """#!/bin/bash
-set -eu
-test "$ACCESS_TOKEN" = test_only_not_a_real_token
-printf 'token:%s\\n' "$RUNNER_SCOPE" >> /_work/test-events
-printf '{"token":"offline_token"}\\n'
-""",
     "curl": """#!/bin/bash
 set -eu
 test -z "${ACCESS_TOKEN+x}"
@@ -38,21 +32,10 @@ printf '{"token":"%s"}\\n' "$token"
 """,
     "config.sh": """#!/bin/bash
 set -eu
-registration=offline_token
-removal=offline_token
-if [[ "${CANDIDATE_IMAGE:-}" == true ]]; then
-  test -z "${ACCESS_TOKEN:-}"
-  registration=offline_registration
-  removal=offline_removal
-fi
+test -z "${ACCESS_TOKEN:-}"
 if [[ "$1" == remove ]]; then
-  shift
-  if [[ "${CANDIDATE_IMAGE:-}" == true ]]; then
-    test "$1" = --unattended
-    shift
-  fi
-  test "$1" = --token
-  test "$2" = "$removal"
+  test "$2" = --token
+  test "$3" = offline_removal
   printf 'removed\\n' >> /_work/test-events
   rm -f .runner
   exit 0
@@ -66,7 +49,7 @@ while (( $# )); do
     --labels) labels="$2"; shift 2 ;;
     --runnergroup) group="$2"; shift 2 ;;
     --work) work="$2"; shift 2 ;;
-    --token) test "$2" = "$registration"; shift 2 ;;
+    --token) test "$2" = offline_registration; shift 2 ;;
     --replace) replace=yes; shift ;;
     --disableupdate) disableupdate=yes; shift ;;
     --unattended) shift ;;
@@ -80,15 +63,10 @@ else
 fi
 test "$name" = "$RUNNER_NAME"
 test "$labels" = "$LABELS"
-if [[ "${CANDIDATE_IMAGE:-}" == true ]]; then
-  test "$disableupdate" = yes
-  if [[ "$RUNNER_SCOPE" == repo ]]; then
-    test -z "$group"
-  else
-    test "$group" = "$RUNNER_GROUP"
-  fi
+test "$disableupdate" = yes
+if [[ "$RUNNER_SCOPE" == repo ]]; then
+  test -z "$group"
 else
-  test -z "$disableupdate"
   test "$group" = "$RUNNER_GROUP"
 fi
 test "$work" = /_work
@@ -106,7 +84,7 @@ test "$2" = --startuptype
 test "$3" = service
 test "$(id -u)" != 0
 test -z "${ACCESS_TOKEN:-}"
-test "$(node --version)" = "${EXPECTED_NODE:-v24.22.1}"
+test "$(node --version)" = v24.22.3
 test ! -S /var/run/docker.sock
 touch /_work/writable
 touch /opt/hostedtoolcache/writable
@@ -140,9 +118,8 @@ def scenario(scope, platform, candidate_image):
             values.update(RUNNER_SCOPE="org", REPO_URL="", ORG_NAME="example-org", RUNNER_GROUP="Trusted Builds")
         env_file.write_text("\n".join(f"{key}={value}" for key, value in values.items()))
         mounts = []
-        token_mock = {"curl": "/usr/local/bin/curl"} if candidate_image else {"token.sh": "/token.sh"}
-        destinations = token_mock | {"config.sh": "/actions-runner/config.sh",
-                                     "Runner.Listener": "/actions-runner/bin/Runner.Listener"}
+        destinations = {"curl": "/usr/local/bin/curl", "config.sh": "/actions-runner/config.sh",
+                        "Runner.Listener": "/actions-runner/bin/Runner.Listener"}
         for name, destination in destinations.items():
             path = folder / name
             path.write_text(MOCKS[name])
@@ -152,8 +129,7 @@ def scenario(scope, platform, candidate_image):
         service = {"network_mode": "none", "platform": platform, "volumes": mounts,
                    "cpus": 2, "mem_limit": "1g", "pids_limit": 128}
         if candidate_image:
-            service.update(image=candidate_image, init=True,
-                           environment={"CANDIDATE_IMAGE": "true", "EXPECTED_NODE": "v24.22.3"})
+            service["image"] = candidate_image
         override.write_text(json.dumps({"services": {"dokploy-actions-runner": service}}))
         environment = {k: v for k, v in os.environ.items()
                        if k not in INPUTS and not k.startswith("COMPOSE_")}

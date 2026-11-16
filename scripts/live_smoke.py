@@ -97,11 +97,8 @@ def main():
                     for dc, environment, _ in projects:
                         command([*dc, 'restart'], env=environment, timeout=180)
                     until(ready, 'both runners online after restart')
-                inputs = {'live_smoke': 'true', 'runner_label': label}
-                if args.candidate:
-                    inputs['candidate'] = 'true'
                 api(base + '/actions/workflows/validate.yml/dispatches', 'POST',
-                    {'ref': args.ref, 'inputs': inputs})
+                    {'ref': args.ref, 'inputs': {'live_smoke': 'true', 'runner_label': label}})
                 def new_run():
                     return next((r for r in api(base + '/actions/workflows/validate.yml/runs?event=workflow_dispatch&per_page=20')['workflow_runs']
                                  if matches_dispatch(r, label, args.ref, commit, seen)), None)

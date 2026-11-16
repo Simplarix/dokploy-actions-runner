@@ -5,63 +5,50 @@ Keep this blueprint and the official `Dokploy/templates:canary` catalog entry in
 
 ## Reviewed baseline
 
-Reviewed on **2 November 2026** for **v0.2.0**:
+Reviewed on **16 November 2026** for the first-party image.
 
 | Component | Result |
 | --- | --- |
-| Upstream image | `ghcr.io/myoung34/docker-github-actions-runner:2.338.2-ubuntu-noble` |
-| Multi-architecture index | `sha256:23e3a4a1da30de5b462ad0ae13d901288e803a688075c3b9b5bb79b7148c07fa` |
-| Runner / default shell Node | 2.338.2 / 24.22.1 via `externals/node24/bin/node` |
-| Retained runtimes | Distro Node18 18.19.1, embedded Node20 20.20.2; AMD64 also has Node20/24 musl slots; ARM64 has no Alpine slots |
-| Scanner | Grype 0.121.1, database built 2026-11-02T06:26:52Z |
-| Scanner matches, each architecture | 26 Critical, 170 High, 980 Medium, 137 Low, 11 Negligible; zero matches for Node24 24.22.1 in that database |
+| Image | GHCR package `simplarix/dokploy-actions-runner`, tag `2.338.2-node24.22.3-ubuntu-noble-r2` |
+| Multi-architecture index | `sha256:67a0863b831643700c8a2870b326d6451e131fd21a69535aa29aa7693b3adad2` |
+| Runner and default Node | 2.338.2 and 24.22.3 via `externals/node24/bin/node` |
+| Git LFS | 3.8.1 from the official release |
+| Scanner | Grype 0.121.1, database built 2026-11-16T06:30:54Z |
+| Scanner matches per architecture | 1 Critical, 12 High, 321 Medium, 11 Low, 4 Negligible, 1 Unknown. No matches for the default Node 24.22.3 binary. |
 
-Version 0.1.0 used embedded Node24 24.21.0 and default shell Node18. The updated
-PATH and startup guard select patched Node24 but do not remove other vulnerable
-components. Scan counts include duplicate components and are not proof of
-exploitability or vulnerability freedom; database changes affect comparisons.
-See [SECURITY.md](../SECURITY.md) and the expected executable inventory in
-[runtime-policy.json](../runtime-policy.json).
+The remaining Critical match is [GO-2026-6612](https://pkg.go.dev/vuln/GO-2026-6612)
+in Git LFS's `golang.org/x/net` dependency. The advisory covers HTTP/2 server
+handling. The workflow uses Git LFS as a client and the template publishes no
+ports. Scanner matches identify components by version and do not establish reachability.
 
-**Validation:** 15 regression tests and native AMD64/ARM64 offline lifecycle CI
-[passed](https://github.com/Simplarix/dokploy-actions-runner/actions/runs/41537288411).
-Real GitHub jobs [before](https://github.com/Simplarix/dokploy-actions-runner/actions/runs/41538035551)
-and [after restart](https://github.com/Simplarix/dokploy-actions-runner/actions/runs/41538568183)
-passed with checkout/setup-node, Node24 main/post handlers, a Node20
-declaration routed to Node24, internal hashFiles, restart and graceful deregistration.
-Live ARM64 runs natively in Docker Desktop and AMD64 uses Rosetta; this is separate
-from native CI. All Node executable hashes, including AMD64 Alpine variants, match
-the versions tested on 22 October; the previous musl execution proof still applies.
+Native AMD64/ARM64 offline and inventory CI passed in the
+[validation workflow](https://github.com/Simplarix/dokploy-actions-runner/actions/runs/43953646903).
+Real GitHub jobs passed [before](https://github.com/Simplarix/dokploy-actions-runner/actions/runs/43953678601)
+and [after restart](https://github.com/Simplarix/dokploy-actions-runner/actions/runs/43953867466).
+Those runs tested repository registration, Node24 main/post handlers, a legacy
+Node20 declaration routed to Node24, internal hashFiles, setup-node and graceful
+deregistration on native ARM64 and emulated AMD64 in Docker Desktop. Org
+registration in the Default group, native AMD64 application jobs, graceful
+removal and Stop/Deploy were also exercised in Dokploy. The application pilot
+uses setup-node to select its own build runtime.
 
-The tester confirmed all six Dokploy import/operation acceptance steps for the
-2.338.1 preview on 22 October. The 2.338.2 preview files and metadata are verified,
-but a fresh Dokploy UI deployment of 2.338.2 is not claimed. The tester's architecture
-and repo/org scope were unspecified. Live custom-group routing, native AMD64 live
-jobs and an actual runner self-update remain unverified.
-
-Current per-architecture manifests, inventories, full scanner-match summaries,
-GitHub smoke results and checksums are attached to the
+The earlier third-party image review and scans are in the
 [v0.2.0 release](https://github.com/Simplarix/dokploy-actions-runner/releases/tag/v0.2.0).
-The [22 October snapshot](https://github.com/Simplarix/dokploy-actions-runner/tree/8aecb91b31c83ad48d64aec146616206e962ed97/docs)
-retains the earlier review and prepared upstream proposal. Keep future large
-reports in release/CI artifacts and only their current summary here.
 
 ## Detect and review updates
 
 - After merge to the default branch, `check-updates.yml` checks daily for newer
-  Runner Core/Node24 releases and a rebuilt upstream tag digest. Runner/image
+  Runner Core/Node24 releases and a change to the published tag digest. Runner/image
   changes and newer Node releases marked `security: true` fail the check. Node
   releases explicitly marked `security: false` produce visible workflow warnings
-  and a job summary without failing it; review these for adoption through a maintained
-  upstream image. Missing/invalid security metadata and network/parser errors fail
+  and a job summary without failing it; review these for the next image build. Missing/invalid security metadata and network/parser errors fail
   the check. Every newer stable release in the current Node major is checked, so a
   later ordinary release cannot hide an intervening security release. Alpha/RC
   entries are excluded before stable-version parsing. Subscribe to failures and keep schedules enabled; GitHub
   can disable schedules on inactive public repositories. Detection does not deploy.
-- Dependabot proposes weekly image updates. Also watch
-  [runner](https://github.com/actions/runner/releases),
-  [image](https://github.com/myoung34/docker-github-actions-runner/releases),
-  [Node security](https://nodejs.org/en/blog/vulnerability) and Ubuntu announcements.
+- Dependabot proposes weekly Ubuntu base image updates. Also watch
+  [Runner](https://github.com/actions/runner/releases), [Node security](https://nodejs.org/en/blog/vulnerability),
+  [Git LFS](https://github.com/git-lfs/git-lfs/releases), and Ubuntu announcements.
   Scan OS/tool packages too; a runtime version check is not a vulnerability scan.
 - Triage security releases the same day; target tested catalog/image-pin updates
   within 48 hours and prompt operator rollout. GitHub requires runner updates
@@ -69,16 +56,7 @@ reports in release/CI artifacts and only their current summary here.
   [runner reference](https://docs.github.com/en/actions/reference/runners/self-hosted-runners).
   These are maintenance responsibilities, not an automatic rollout guarantee.
 
-The monitor currently reports a genuine upstream gap: Node 24.22.2 is
-available, but Runner 2.338.2 still bundles 24.22.1. This remains tracked in
-[issue #6](https://github.com/Simplarix/dokploy-actions-runner/issues/6) and is shown
-as a workflow warning because Node's index explicitly marks 24.22.2 as
-`security: false`. That flag is not a blanket safety assessment or a vulnerability
-scan. The tested baseline stays at the actual bundled 24.22.1; warnings do not
-change runtime policy, the startup floor or deployed binaries. Update the runtime
-by deploying a tested image built with the new version.
-
-## First-party image candidate
+## Build and test candidates
 
 `image/Dockerfile` uses a digest-pinned Ubuntu 24.04 base and the official
 GitHub Runner, Node.js and Git LFS archives, each pinned by SHA-256 per
@@ -111,19 +89,16 @@ The validation workflow builds the candidate and exercises the existing Dokploy
 configuration with mock registration and shutdown on both architectures. With
 both local candidates built and the reviewed workflow pushed, run real jobs with
 `python scripts/live_smoke.py --candidate --repo OWNER/REPO --ref BRANCH --output local/live.json`.
-Before switching the catalog, scan both candidate manifests and publish the
-tested build to GHCR. Set `init: true`
+Scan both candidate manifests before publishing the tested build to GHCR. Set `init: true`
 in the Compose service so an init process reaps orphaned child processes, as in
-the candidate lifecycle test. Use the published multi-architecture digest and
-adapt the runtime policy and update monitor to the first-party image. Replace
+the candidate lifecycle test. Pin the published multi-architecture digest and update the runtime policy. Replace
 the deployed container when updating the image. Keep the previous pin for rollback.
 
 ## Validate and publish an image update
 
-1. Resolve a maintained upstream tag and its exact multi-architecture index and
-   AMD64/ARM64 child manifests. Verify an anonymous pull using an empty Docker
-   credential config. Update the Compose tag/digest, metadata version, runtime
-   policy, runtime floor/tests/workflow expectations, README and changelog together.
+1. Update the digests and versions in `image/Dockerfile` from the official
+   release sources and build both architectures. Choose a fresh release tag,
+   incrementing the `-rN` revision for another build with the same versions.
 2. Run the configuration/regression checks in [CONTRIBUTING.md](../CONTRIBUTING.md).
    Run the following on each native architecture, selecting `linux/amd64` or
    `linux/arm64` to match the host; CI covers both:
@@ -155,11 +130,11 @@ the deployed container when updating the image. Keep the previous pin for rollba
    Dokploy acceptance separately. A complete Dokploy preview test covers import,
    configuration, one Idle runner, a targeted job, Stop → Deploy/repeat job, and
    final deregistration/cleanup. Keep secrets and private infrastructure out of reports.
-5. Keep self-updates enabled. They replace `bin` and `externals`, so local binary
-   overlays would be overwritten and an initial image digest cannot attest the
-   updated filesystem. Check actual versions after observed updates. The startup
-   floor rejects missing Node24 or versions below 24.22.1; future security floors
-   and runtime-major transitions require template/test review.
+5. Publish both tested architecture manifests to GHCR and combine them into
+   one release tag. Verify an anonymous pull for both architectures using an
+   empty Docker credential config. Pin that index digest in Compose and update
+   its metadata version, runtime policy, tests and README together. A rebuild
+   and recreation deliver updates because runner self-updates are disabled.
 6. Create matching maintainer/catalog PRs with the identical blueprint. In the
    catalog checkout run `node build-scripts/generate-meta.js --check`, and test the
    published preview import before marking ready. Link results, limits and artifacts
@@ -178,8 +153,8 @@ the deployed container when updating the image. Keep the previous pin for rollba
    before replacing it with `dokploy-actions-runner`; catalog installs already use
    that name. Default shell Node changes from 18 to 24.
 3. Use the complete updated blueprint, retaining intended scope/name/labels/group
-   and reviewed resource limits. Remove custom binary patches, update-disabling
-   flags and obsolete entrypoints; an image-only override may retain them. Recreate
+   and reviewed resource limits. Apply the new entrypoint and init settings from
+   the complete blueprint. Recreate
    without carrying runner credentials or mutable caches forward. OS/tool updates
    require a new image and recreation, not a restart of the unchanged pin.
 4. Verify one Idle runner, the reviewed Runner Core/default Node path/version,

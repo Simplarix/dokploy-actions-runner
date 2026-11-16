@@ -75,8 +75,8 @@ class ConfigurationTests(unittest.TestCase):
             config = validate.compose_config(env_file=env_file)
             environment = config["services"]["dokploy-actions-runner"]["environment"]
             self.assertEqual(environment["ACCESS_TOKEN"], validate.FIXTURE["ACCESS_TOKEN"])
-            self.assertEqual(environment["RUN_AS_ROOT"], "false")
-            self.assertEqual(environment["START_DOCKER_SERVICE"], "false")
+            self.assertNotIn("RUN_AS_ROOT", environment)
+            self.assertNotIn("START_DOCKER_SERVICE", environment)
             self.assertNotIn("UNRELATED_SECRET", environment)
             self.assertNotIn("DEBUG_OUTPUT", environment)
             self.assertNotIn("EPHEMERAL", environment)

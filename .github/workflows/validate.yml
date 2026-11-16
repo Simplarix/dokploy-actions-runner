@@ -13,10 +13,6 @@ on:
         description: Unique shared label of the two disposable smoke runners
         type: string
         default: unused
-      candidate:
-        description: Expect the Node runtime from the first-party candidate
-        type: boolean
-        default: false
 permissions:
   contents: read
 jobs:
@@ -61,7 +57,7 @@ jobs:
     runs-on: [self-hosted, linux, '${{ inputs.runner_label }}', '${{ matrix.arch }}']
     timeout-minutes: 10
     env:
-      EXPECTED_NODE_VERSION: ${{ inputs.candidate && '24.22.3' || '24.22.1' }}
+      EXPECTED_NODE_VERSION: '24.22.3'
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
