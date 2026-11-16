@@ -1,0 +1,57 @@
+name: Scan published image
+on:
+  schedule:
+    - cron: '35 7 * * *'
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - blueprints/dokploy-actions-runner/docker-compose.yml
+      - .github/workflows/scan-image.yml
+permissions:
+  contents: read
+jobs:
+  scan:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - host: ubuntu-24.04
+            arch: amd64
+          - host: ubuntu-24.04-arm
+            arch: arm64
+    runs-on: ${{ matrix.host }}
+    timeout-minutes: 20
+    env:
+      GRYPE: anchore/grype:v0.121.1@sha256:6b06708b036f74b2cd70e94b706b4586af96d1932e6ac46255940b2e39dd44a9
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Pull the exact published image and current vulnerability database
+        shell: bash
+        run: |
+          set -euo pipefail
+          image=$(sed -n 's/^    image: //p' blueprints/dokploy-actions-runner/docker-compose.yml)
+          test -n "$image"
+          docker pull --platform 'linux/${{ matrix.arch }}' "$image"
+          mkdir -p scan/db
+          docker image save --platform 'linux/${{ matrix.arch }}' -o scan/image.tar "$image"
+          docker pull "$GRYPE"
+          docker run --rm --cap-drop ALL --security-opt no-new-privileges:true \
+            -v "$PWD/scan/db:/db" -e GRYPE_DB_CACHE_DIR=/db \
+            -e GRYPE_CHECK_FOR_APP_UPDATE=false "$GRYPE" db update
+      - name: Scan offline and fail on any High or Critical finding
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker run --rm --pull never --network none --cap-drop ALL \
+            --security-opt no-new-privileges:true --memory 2g --cpus 2 --pids-limit 128 \
+            -v "$PWD/scan:/scan:ro" -e GRYPE_DB_CACHE_DIR=/scan/db \
+            -e GRYPE_DB_AUTO_UPDATE=false -e GRYPE_CHECK_FOR_APP_UPDATE=false \
+            "$GRYPE" docker-archive:/scan/image.tar --fail-on high -o json > 'scan/grype-${{ matrix.arch }}.json'
+      - name: Retain the complete scan including unresolved findings
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: grype-${{ matrix.arch }}
+          path: scan/grype-${{ matrix.arch }}.json
+          if-no-files-found: error

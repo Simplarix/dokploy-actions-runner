@@ -1,5 +1,14 @@
 # Changelog
 
+## v0.3.1 — 16 November 2026
+
+- Patches the documented Critical and twelve High image findings in Git LFS,
+  bundled npm dependencies and .NET servicing packages on AMD64 and ARM64.
+- Installs available Ubuntu package security updates and retains the 24.04 LTS
+  baseline, with automatic Dependabot digest updates and deliberate distribution upgrades.
+- Adds daily image scans that fail on High/Critical findings, complete scan
+  artifacts, and an offline Git LFS content round-trip regression check.
+
 ## v0.3.0 — 16 November 2026
 
 - Switches to a first-party Ubuntu image with Runner 2.338.2, embedded Node

@@ -1,8 +1,8 @@
 # Contributing
 
-Keep the template self-contained and use the upstream image's lifecycle handler.
-Avoid adding controllers, token brokers, shared state or a custom image without a
-clear requirement. Preserve the documented security defaults and operator inputs.
+Keep the template self-contained and preserve the first-party image's lifecycle
+handler, documented security defaults and operator inputs. Avoid adding
+controllers, token brokers or shared state without a clear requirement.
 
 ## Development
 

@@ -43,6 +43,7 @@ jobs:
       - name: Test candidate lifecycle offline and record the runtime inventory
         run: |
           python scripts/test_container.py --platform '${{ matrix.platform }}' --candidate-image dokploy-runner-candidate:2.338.2
+          python scripts/test_tools.py --platform '${{ matrix.platform }}' --image dokploy-runner-candidate:2.338.2
           python scripts/runtime_inventory.py --platform '${{ matrix.platform }}' --image dokploy-runner-candidate:2.338.2
       - name: Test pinned image offline (mock GitHub, no credentials)
         run: python scripts/test_container.py --platform '${{ matrix.platform }}'

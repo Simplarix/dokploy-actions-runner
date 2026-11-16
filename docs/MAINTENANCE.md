@@ -9,22 +9,35 @@ Reviewed on **16 November 2026** for the first-party image.
 
 | Component | Result |
 | --- | --- |
-| Image | GHCR package `simplarix/dokploy-actions-runner`, tag `2.338.2-node24.22.3-ubuntu-noble-r2` |
-| Multi-architecture index | `sha256:67a0863b831643700c8a2870b326d6451e131fd21a69535aa29aa7693b3adad2` |
+| Image | GHCR package `simplarix/dokploy-actions-runner`, tag `2.338.2-node24.22.3-ubuntu-noble-r3` |
+| Multi-architecture index | `sha256:1213cbb5567a6ac138f12bd8a0163b4f73fef95a3ab5d2590bc676c896bed75f` |
 | Runner and default Node | 2.338.2 and 24.22.3 via `externals/node24/bin/node` |
-| Git LFS | 3.8.1 from the official release |
+| Git LFS | 3.8.1 rebuilt from verified upstream source with Go 1.27.4, x/net 0.60.0 and compress 1.20.2 |
+| Bundled npm | 11.21.2, including brace-expansion 5.0.12 and undici 6.29.1 |
+| Runner servicing packages | Official Microsoft WebUtilities and Http.Headers 8.0.34 DLLs with matching dependency manifests |
 | Scanner | Grype 0.121.1, database built 2026-11-16T06:30:54Z |
-| Scanner matches per architecture | 1 Critical, 12 High, 321 Medium, 11 Low, 4 Negligible, 1 Unknown. No matches for the default Node 24.22.3 binary. |
+| Scanner matches per architecture | 0 Critical, 0 High, 299 Medium, 10 Low, 4 Negligible, 0 Unknown. No matches for the default Node 24.22.3 binary. |
 
-The remaining Critical match is [GO-2026-6612](https://pkg.go.dev/vuln/GO-2026-6612)
-in Git LFS's `golang.org/x/net` dependency. The advisory covers HTTP/2 server
-handling. The workflow uses Git LFS as a client and the template publishes no
-ports. Scanner matches identify components by version and do not establish reachability.
+The security rebuild removes the previous Critical
+[GO-2026-6612](https://pkg.go.dev/vuln/GO-2026-6612) match and all twelve High
+matches without suppressions. It patches Git LFS's Go dependencies, npm's bundled
+dependencies and the runner's .NET 8 servicing packages, and installs available
+Ubuntu package updates. Runner Core and the embedded Node binary remain unchanged.
+
+Remaining findings are retained in full in the release artifacts. Most are
+Ubuntu packages without a fix in the configured repositories. Two Medium npm
+matches remain: [glob cancellation](https://github.com/advisories/GHSA-3g3m-2fjr-6pw4)
+and [minimatch pattern amplification](https://github.com/advisories/GHSA-g3hv-75wg-m249).
+Their published fixes require new library major versions, outside npm 11's
+dependency ranges; even the reviewed npm 12.2.2 archive contains the affected
+versions. Keep workflows and glob inputs trusted, set job timeouts/resource
+limits, and review new npm releases. This is a documented residual risk, not a
+scanner exclusion or a claim that the image has no vulnerabilities.
 
 Native AMD64/ARM64 offline and inventory CI passed in the
-[validation workflow](https://github.com/Simplarix/dokploy-actions-runner/actions/runs/43953646903).
-Real GitHub jobs passed [before](https://github.com/Simplarix/dokploy-actions-runner/actions/runs/43953678601)
-and [after restart](https://github.com/Simplarix/dokploy-actions-runner/actions/runs/43953867466).
+[validation workflow](https://github.com/Simplarix/dokploy-actions-runner/actions/runs/43962706928).
+Real GitHub jobs passed [before](https://github.com/Simplarix/dokploy-actions-runner/actions/runs/43963237738)
+and [after restart](https://github.com/Simplarix/dokploy-actions-runner/actions/runs/43963473783).
 Those runs tested repository registration, Node24 main/post handlers, a legacy
 Node20 declaration routed to Node24, internal hashFiles, setup-node and graceful
 deregistration on native ARM64 and emulated AMD64 in Docker Desktop. Org
@@ -46,7 +59,14 @@ The earlier third-party image review and scans are in the
   later ordinary release cannot hide an intervening security release. Alpha/RC
   entries are excluded before stable-version parsing. Subscribe to failures and keep schedules enabled; GitHub
   can disable schedules on inactive public repositories. Detection does not deploy.
-- Dependabot proposes weekly Ubuntu base image updates. Also watch
+- `scan-image.yml` scans the exact published AMD64 and ARM64 image daily with a
+  fresh Grype database. Any High or Critical match fails the workflow; complete
+  JSON reports, including lower-severity findings, are retained as artifacts.
+  A successful scan does not prove reachability or eliminate residual risk.
+- Dependabot proposes weekly Ubuntu 24.04 digest updates. Distribution major/minor
+  upgrades are deliberately reviewed with package compatibility and LTS support;
+  the incompatible Ubuntu 25.10 proposal is superseded by this security rebuild.
+  Also watch
   [Runner](https://github.com/actions/runner/releases), [Node security](https://nodejs.org/en/blog/vulnerability),
   [Git LFS](https://github.com/git-lfs/git-lfs/releases), and Ubuntu announcements.
   Scan OS/tool packages too; a runtime version check is not a vulnerability scan.
@@ -58,9 +78,13 @@ The earlier third-party image review and scans are in the
 
 ## Build and test candidates
 
-`image/Dockerfile` uses a digest-pinned Ubuntu 24.04 base and the official
-GitHub Runner, Node.js and Git LFS archives, each pinned by SHA-256 per
-architecture. We can rebuild the image with a newer Node24 or Ubuntu patch set
+`image/Dockerfile` uses digest-pinned Ubuntu 24.04 and Go build images, official
+GitHub Runner/Node archives, the Git LFS source archive, npm and Microsoft NuGet
+archives. Downloads are pinned by SHA-256, and Git LFS dependencies are locked
+in `image/git-lfs/go.mod` and `go.sum`. The Go compilation itself has networking
+disabled. `image/patch_runner.py` installs the official .NET servicing DLLs and
+updates dependency versions, hashes and file metadata together; it fails if an
+unexpected upstream package version appears. We can rebuild with a newer Node24 or Ubuntu patch set
 while keeping the reviewed GitHub Runner version. Runner releases still come
 from GitHub. The candidate ships only the Node24 Linux runtime. GitHub routes
 legacy Node20 action declarations to Node24, which the live smoke workflow
@@ -82,6 +106,7 @@ platform=linux/amd64
 candidate="dokploy-runner-candidate:2.338.2-${platform##*/}"
 docker buildx build --load --platform "$platform" -t "$candidate" image
 python scripts/test_container.py --platform "$platform" --candidate-image "$candidate"
+python scripts/test_tools.py --platform "$platform" --image "$candidate"
 python scripts/runtime_inventory.py --platform "$platform" --image "$candidate"
 ```
 
