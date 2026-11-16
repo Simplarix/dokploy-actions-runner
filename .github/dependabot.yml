@@ -4,6 +4,11 @@ updates:
     directory: /image
     schedule:
       interval: weekly
+    ignore:
+      # Distribution upgrades need a deliberate LTS/package compatibility review.
+      # Digest updates within Ubuntu 24.04 remain enabled.
+      - dependency-name: ubuntu
+        update-types: [version-update:semver-major, version-update:semver-minor]
   - package-ecosystem: docker-compose
     directory: /blueprints/dokploy-actions-runner
     schedule:
