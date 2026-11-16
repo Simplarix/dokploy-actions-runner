@@ -36,14 +36,14 @@ jobs:
           mkdir -p scan/db
           docker image save --platform 'linux/${{ matrix.arch }}' -o scan/image.tar "$image"
           docker pull "$GRYPE"
-          docker run --rm --cap-drop ALL --security-opt no-new-privileges:true \
+          docker run --rm --user "$(id -u):$(id -g)" --cap-drop ALL --security-opt no-new-privileges:true \
             -v "$PWD/scan/db:/db" -e GRYPE_DB_CACHE_DIR=/db \
             -e GRYPE_CHECK_FOR_APP_UPDATE=false "$GRYPE" db update
       - name: Scan offline and fail on any High or Critical finding
         shell: bash
         run: |
           set -euo pipefail
-          docker run --rm --pull never --network none --cap-drop ALL \
+          docker run --rm --pull never --network none --user "$(id -u):$(id -g)" --cap-drop ALL \
             --security-opt no-new-privileges:true --memory 2g --cpus 2 --pids-limit 128 \
             -v "$PWD/scan:/scan:ro" -e GRYPE_DB_CACHE_DIR=/scan/db \
             -e GRYPE_DB_AUTO_UPDATE=false -e GRYPE_CHECK_FOR_APP_UPDATE=false \
