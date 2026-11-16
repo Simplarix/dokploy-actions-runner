@@ -10,7 +10,7 @@ fork and `pull_request_target` code can compromise a self-hosted runner; see
 The runner uses a non-root account, drops all capabilities and enables
 `no-new-privileges`. There is no privileged mode, Docker socket, host mount,
 inbound port or host networking. The root filesystem stays writable for
-registration, runner updates and user-level tooling.
+registration and user-level tooling.
 
 Jobs share the same account, workspace and tool cache over time. A container is
 not a VM or a per-job isolation boundary. Separate trust domains onto dedicated
@@ -26,36 +26,28 @@ adds another high-risk boundary. Review such workloads separately.
 ## Credentials
 
 The seven operator inputs are explicitly allowlisted. Invalid configuration is
-rejected without printing values. The upstream entrypoint un-exports the PAT
+rejected without printing values. The image entrypoint un-exports the PAT
 before launching the listener, reducing ordinary workflow environment exposure.
 This is not secret isolation: Docker/Dokploy administrators and malicious code in
 the same container may recover startup environment, process memory, arguments or
 runner credentials. Do not share credentials across unrelated trust domains.
 
-`UNSET_CONFIG_VARS` remains `false` because clearing the PAT breaks the inspected
-upstream deregistration trap. Keep `.env` ignored/private with mode `0600`; never
-publish real tokens, resolved Compose, inspection or environment dumps. Automated
-offline tests use dummy credentials.
+The lifecycle supervisor retains the PAT for deregistration. Keep the local
+.env file private and use dummy credentials for offline testing.
 
 ## Runtime and image limits
 
-The fixed PATH selects the genuine embedded Node24 for shell steps. Startup
-rejects a missing slot, a different default path or Node24 below 24.22.1. GitHub
-selects JavaScript action runtimes separately; successful migration of a Node20
-action does not establish compatibility for every legacy action. Prefer actions
-that declare Node24 and avoid insecure-runtime opt-outs.
+The fixed PATH selects the embedded Node24 for shell steps. The template
+rejects versions below 24.22.2 and the image entrypoint checks its exact
+build-time runtime version. GitHub selects JavaScript action runtimes separately
+and routes legacy Node20 declarations to Node24. The current image includes
+only the Node24 Linux executable.
 
-The image still contains EOL distro Node18, genuine Node20 compatibility binaries,
-AMD64 Alpine slots and vulnerabilities in other tools. They are not patched or
-removed by PATH, and explicit paths/workflow overrides can still select them.
-This template does not satisfy a zero-EOL or zero-High/Critical-image policy.
-See the [reviewed baseline and findings](docs/MAINTENANCE.md#reviewed-baseline).
-
-Runner self-updates remain enabled and replace `bin`/`externals`; the initial
-image digest does not attest the post-update filesystem. No local binary overlays
-are applied. Check versions after updates and follow the
-[maintenance process](docs/MAINTENANCE.md) for OS/tool fixes and runtime-major changes.
-The startup gate checks startup/restart; it does not police a running workflow.
+The image still has scanner findings in other components. The
+[maintenance guide](docs/MAINTENANCE.md#reviewed-baseline) documents the scan
+and verified runtime. Runner self-updates are disabled to preserve the image's
+runtime. Rebuild and redeploy for Runner, Node, Git LFS, or Ubuntu security fixes.
+The startup gate runs at process startup and does not police running jobs.
 
 ## Reporting
 

@@ -49,14 +49,14 @@ def findings(policy, image, runner_release, node_releases, index_digest):
         status = ('security: false' if security is False else
                   'security release' if security is True else
                   'missing or invalid security metadata')
-        messages.append(Finding(level, f'Node {entry["version"]} is newer than the tested runtime {policy["default_node"]} ({status}); review https://nodejs.org/en/blog/release/{entry["version"]} and the maintained upstream runner image. The tested runtime baseline is unchanged.'))
+        messages.append(Finding(level, f'Node {entry["version"]} is newer than the tested runtime {policy["default_node"]} ({status}); review https://nodejs.org/en/blog/release/{entry["version"]} and rebuild the runner image. The tested runtime baseline is unchanged.'))
     if index_digest != image.split('@', 1)[1]:
-        messages.append(Finding('error', 'Upstream rebuilt the pinned tag; inspect OS/tool changes and scan/test the new digest before updating both catalogs.'))
+        messages.append(Finding('error', 'The published tag digest changed; inspect OS/tool changes and scan/test the new digest before updating both catalogs.'))
     return messages
 
 
 def report(messages):
-    unchanged = 'Runner, Node24 and upstream tag digest match the reviewed baseline. This is not a vulnerability scan.'
+    unchanged = 'Runner, Node24 and the published tag digest match the reviewed baseline. This is not a vulnerability scan.'
     for finding in messages:
         if os.environ.get('GITHUB_ACTIONS') == 'true':
             message = finding.message.replace('%', '%25').replace('\r', '%0D').replace('\n', '%0A')

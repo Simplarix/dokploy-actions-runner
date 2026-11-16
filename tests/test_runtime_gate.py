@@ -12,7 +12,7 @@ class RuntimeGateTests(unittest.TestCase):
     def test_fails_closed_after_missing_downgraded_or_wrong_major_runtime(self):
         script = load_blueprint()['services']['dokploy-actions-runner']['entrypoint'][2].replace('$$', '$')
         gate = re.search(r'# Runtime gate:.*?# End runtime gate\.', script, re.S).group()
-        for version, expected in [('v24.22.1', 0), ('v24.22.2', 0), ('v24.23.0', 0),
+        for version, expected in [('v24.22.1', 64), ('v24.22.2', 0), ('v24.23.0', 0),
                                   ('v24.22.0', 64), ('v24.9.9', 64), ('v20.20.2', 64),
                                   ('v26.12.1', 64), ('bad', 64), (None, 64)]:
             with self.subTest(version=version), tempfile.TemporaryDirectory() as temp:

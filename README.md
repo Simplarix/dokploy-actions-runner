@@ -6,11 +6,10 @@
 
 Self-hosted GitHub Actions runners for Dokploy, community-maintained by
 [Simplarix](https://github.com/Simplarix). Each deployment runs one independent
-repository or organization runner using the maintained
-[myoung34 image](https://github.com/myoung34/docker-github-actions-runner).
+repository or organization runner using the [image built by this project](image/Dockerfile).
 
 - Ubuntu 24.04, Runner **2.338.2**, pinned to a multi-architecture image digest.
-- Native `linux/amd64` and `linux/arm64`; default shell Node **24.22.1**.
+- Native `linux/amd64` and `linux/arm64`; default shell Node **24.22.2**.
 - Non-root, all capabilities dropped, `no-new-privileges` enabled.
 - No privileged mode, Docker socket, host mounts or published ports.
 
@@ -122,19 +121,19 @@ mode `0600`; never share resolved Compose, inspection or environment dumps.
 GitHub adds `self-hosted`, `linux` and the actual architecture label. Each runner
 handles **one job at a time**. Add capacity with separate deployments using unique
 names; identical labels form a pool. Do not scale replicas with the same name:
-upstream replacement registration can disconnect the other runner.
+replacement registration can disconnect the other runner.
 
 Default shell `node` uses `/actions-runner/externals/node24/bin/node`. Startup
-rejects a missing slot, another default path or Node24 below 24.22.1. JavaScript
+rejects a missing slot, another default path or Node24 below 24.22.2. JavaScript
 action runtime selection is controlled separately by GitHub. Prefer Node24 actions;
 use `actions/setup-node` with an explicit version for npm or a build runtime.
 
 ## Operation
 
-The upstream entrypoint obtains fresh tokens, replaces registration under the
+The image entrypoint obtains fresh tokens, replaces registration under the
 configured name, runs the listener and attempts deregistration on graceful exit.
-Runner self-updates remain enabled. Presence-based `EPHEMERAL` and
-`DISABLE_AUTO_UPDATE` flags are deliberately omitted; even `false` would enable them.
+Install Runner and Node updates by recreating the service with a new image digest.
+The runner has in-place updates disabled to preserve the tested runtime.
 
 Wait for Idle before stopping or updating. Keep the PAT valid until deregistration
 finishes; the two-minute stop grace period does not guarantee a running job will
@@ -174,7 +173,7 @@ Your shell's variables override `.env`; clear stale runner variables first.
 | Group missing or jobs remain queued | Group must exist and allow the repository; all job labels must match; runner must be online and idle |
 | Docker or sudo operations fail | Unsupported by the security defaults; use shell/JavaScript actions and user/tool-cache installs |
 | Runner disconnects or leaves an Offline entry | Check duplicate names, outbound DNS/HTTPS, PAT validity and graceful cleanup |
-| Runtime gate fails | Update the image/template; do not bypass the gate or select distro Node18 |
+| Runtime gate fails | Update the image and template to a reviewed release |
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for development checks. Original project
 files are [MIT licensed](LICENSE); the external image and runner retain their own

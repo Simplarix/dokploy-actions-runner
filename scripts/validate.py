@@ -52,14 +52,14 @@ def compose_config(values=None, env_file=None, project="runner-validation"):
 
 
 def validate_startup(environment):
-    # Run the exact inline validation without calling the upstream runner.
+    # Run the exact inline validation without starting the runner.
     script = load_blueprint()["services"]["dokploy-actions-runner"]["entrypoint"][2]
     # Environment syntax validation runs on the host; the actual runtime gate
     # runs in the image and is tested separately, never simulated as runtime proof.
     script = re.sub(r"# Runtime gate:.*?# End runtime gate.\n", "", script, flags=re.S)
     script = script.replace("$$", "$")
     if script.count(HANDOFF) != 1:
-        raise ValueError("Unexpected upstream entrypoint handoff")
+        raise ValueError("Unexpected image entrypoint handoff")
     script = script.replace(HANDOFF, "exit 0")
     env = {"PATH": os.environ.get("PATH", "/usr/bin:/bin")}
     env.update(environment)
@@ -77,9 +77,10 @@ def validate_project():
     require(set(blueprint) == {"services"}, "Unexpected top-level Compose keys")
     require(set(blueprint["services"]) == {"dokploy-actions-runner"}, "Expected exactly one runner service")
     runner = blueprint["services"]["dokploy-actions-runner"]
-    require(re.fullmatch(r"ghcr\.io/myoung34/docker-github-actions-runner:"
-                         r"\d+\.\d+\.\d+-ubuntu-noble@sha256:[0-9a-f]{64}",
+    require(re.fullmatch(r"ghcr\.io/simplarix/dokploy-actions-runner:"
+                         r"\d+\.\d+\.\d+-node\d+\.\d+\.\d+-ubuntu-noble-r\d+@sha256:[0-9a-f]{64}",
                          runner["image"]), "Runner image must be release/digest pinned")
+    require(runner.get("init") is True, "Reap orphaned child processes with an init process")
     require(runner.get("user") == "runner", "Runner must run as non-root")
     require(runner.get("cap_drop") == ["ALL"], "Drop all Linux capabilities")
     require(runner.get("security_opt") == ["no-new-privileges:true"],
@@ -88,20 +89,16 @@ def validate_project():
                 "networks", "network_mode", "pid", "devices", "build", "deploy"):
         require(key not in runner, f"Unexpected unsafe or shared service setting: {key}")
     environment = runner["environment"]
-    fixed = {"RUN_AS_ROOT": "false", "START_DOCKER_SERVICE": "false",
-             "DISABLE_AUTOMATIC_DEREGISTRATION": "false", "RUNNER_WORKDIR": "/_work",
-             "UNSET_CONFIG_VARS": "false",
-             "PATH": "/actions-runner/externals/node24/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"}
-    require(set(environment) == INPUTS | fixed.keys(), "Unexpected environment inputs")
-    for key, value in fixed.items():
-        require(environment[key] == value, f"Unsafe lifecycle setting: {key}")
+    path = "/actions-runner/externals/node24/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+    require(set(environment) == INPUTS | {"PATH"}, "Unexpected environment inputs")
+    require(environment["PATH"] == path, "Embedded Node24 must be the default runtime")
     for key in INPUTS:
         require(environment[key].startswith("${" + key + ":"),
                 f"Explicit Compose interpolation is required for {key}")
     require(runner["restart"] == "unless-stopped", "Expected automatic restart policy")
     require(runner["stop_grace_period"] == "2m", "Expected deregistration grace period")
     require(runner["entrypoint"][:2] == ["/bin/bash", "-c"], "Unexpected validation wrapper")
-    require(HANDOFF in runner["entrypoint"][2], "Must exec upstream lifecycle handler")
+    require(HANDOFF in runner["entrypoint"][2], "Must exec image lifecycle handler")
     # Every shell dollar must be escaped through Compose, including regex anchors.
     require(not re.search(r"(?<!\$)\$(?!\$)", runner["entrypoint"][2]),
             "Unescaped shell dollar in Compose entrypoint")
