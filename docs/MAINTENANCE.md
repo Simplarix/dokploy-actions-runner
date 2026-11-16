@@ -75,8 +75,48 @@ available, but Runner 2.338.2 still bundles 24.22.1. This remains tracked in
 as a workflow warning because Node's index explicitly marks 24.22.2 as
 `security: false`. That flag is not a blanket safety assessment or a vulnerability
 scan. The tested baseline stays at the actual bundled 24.22.1; warnings do not
-change runtime policy, the startup floor or deployed binaries. Adopt the update
-through a tested maintained upstream image rather than a local binary overlay.
+change runtime policy, the startup floor or deployed binaries. Update the runtime
+by deploying a tested image built with the new version.
+
+## First-party image candidate
+
+`image/Dockerfile` uses a digest-pinned Ubuntu 24.04 base and the official
+GitHub Runner, Node.js and Git LFS archives, each pinned by SHA-256 per
+architecture. We can rebuild the image with a newer Node24 or Ubuntu patch set
+while keeping the reviewed GitHub Runner version. Runner releases still come
+from GitHub. The candidate ships only the Node24 Linux runtime. GitHub routes
+legacy Node20 action declarations to Node24, which the live smoke workflow
+checks. Alpine slots are unnecessary for the Ubuntu shell jobs supported here.
+
+The candidate registers with `--disableupdate` so a GitHub Runner self-update
+cannot overwrite the Node version installed at build time. The image maintainer
+must publish and roll out updated images as GitHub ships Runner fixes. GitHub can
+stop queuing jobs if a runner is more than 30 days behind an available update,
+or sooner for critical fixes. The PAT remains available to the lifecycle
+supervisor for deregistration, so the trust boundary in [SECURITY.md](../SECURITY.md)
+still applies to jobs running under the same account.
+
+Build and test a local candidate on either native Linux architecture. Set
+`platform` to `linux/arm64` on ARM64.
+
+```bash
+platform=linux/amd64
+candidate="dokploy-runner-candidate:2.338.2-${platform##*/}"
+docker buildx build --load --platform "$platform" -t "$candidate" image
+python scripts/test_container.py --platform "$platform" --candidate-image "$candidate"
+python scripts/runtime_inventory.py --platform "$platform" --image "$candidate"
+```
+
+The validation workflow builds the candidate and exercises the existing Dokploy
+configuration with mock registration and shutdown on both architectures. With
+both local candidates built and the reviewed workflow pushed, run real jobs with
+`python scripts/live_smoke.py --candidate --repo OWNER/REPO --ref BRANCH --output local/live.json`.
+Before switching the catalog, scan both candidate manifests and publish the
+tested build to GHCR. Set `init: true`
+in the Compose service so an init process reaps orphaned child processes, as in
+the candidate lifecycle test. Use the published multi-architecture digest and
+adapt the runtime policy and update monitor to the first-party image. Replace
+the deployed container when updating the image. Keep the previous pin for rollback.
 
 ## Validate and publish an image update
 

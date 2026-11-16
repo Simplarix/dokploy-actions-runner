@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Exercise the real pinned image/entrypoint with mock GitHub calls, offline."""
+"""Exercise a runner image and its entrypoint with mock GitHub calls, offline."""
 
 import argparse
 import json
@@ -19,17 +19,46 @@ test "$ACCESS_TOKEN" = test_only_not_a_real_token
 printf 'token:%s\\n' "$RUNNER_SCOPE" >> /_work/test-events
 printf '{"token":"offline_token"}\\n'
 """,
+    "curl": """#!/bin/bash
+set -eu
+test -z "${ACCESS_TOKEN+x}"
+IFS= read -r auth
+test "$auth" = 'header = "Authorization: Bearer test_only_not_a_real_token"'
+case "$RUNNER_SCOPE" in
+  repo) url="https://api.github.com/repos/${REPO_URL#https://github.com/}" ;;
+  org) url="https://api.github.com/orgs/$ORG_NAME" ;;
+esac
+case "${!#}" in
+  "$url/actions/runners/registration-token") token=offline_registration ;;
+  "$url/actions/runners/remove-token") token=offline_removal ;;
+  *) exit 65 ;;
+esac
+printf 'token:%s\\n' "$RUNNER_SCOPE" >> /_work/test-events
+printf '{"token":"%s"}\\n' "$token"
+""",
     "config.sh": """#!/bin/bash
 set -eu
+registration=offline_token
+removal=offline_token
+if [[ "${CANDIDATE_IMAGE:-}" == true ]]; then
+  test -z "${ACCESS_TOKEN:-}"
+  registration=offline_registration
+  removal=offline_removal
+fi
 if [[ "$1" == remove ]]; then
-  test "$2" = --token
-  test "$3" = offline_token
+  shift
+  if [[ "${CANDIDATE_IMAGE:-}" == true ]]; then
+    test "$1" = --unattended
+    shift
+  fi
+  test "$1" = --token
+  test "$2" = "$removal"
   printf 'removed\\n' >> /_work/test-events
   rm -f .runner
   exit 0
 fi
 test ! -f .runner
-url= name= labels= group= replace= work=
+url= name= labels= group= replace= work= disableupdate=
 while (( $# )); do
   case "$1" in
     --url) url="$2"; shift 2 ;;
@@ -37,8 +66,9 @@ while (( $# )); do
     --labels) labels="$2"; shift 2 ;;
     --runnergroup) group="$2"; shift 2 ;;
     --work) work="$2"; shift 2 ;;
-    --token) test "$2" = offline_token; shift 2 ;;
+    --token) test "$2" = "$registration"; shift 2 ;;
     --replace) replace=yes; shift ;;
+    --disableupdate) disableupdate=yes; shift ;;
     --unattended) shift ;;
     *) echo 'Unexpected configuration argument' >&2; exit 70 ;;
   esac
@@ -50,7 +80,17 @@ else
 fi
 test "$name" = "$RUNNER_NAME"
 test "$labels" = "$LABELS"
-test "$group" = "$RUNNER_GROUP"
+if [[ "${CANDIDATE_IMAGE:-}" == true ]]; then
+  test "$disableupdate" = yes
+  if [[ "$RUNNER_SCOPE" == repo ]]; then
+    test -z "$group"
+  else
+    test "$group" = "$RUNNER_GROUP"
+  fi
+else
+  test -z "$disableupdate"
+  test "$group" = "$RUNNER_GROUP"
+fi
 test "$work" = /_work
 test "$replace" = yes
 touch .runner
@@ -58,12 +98,15 @@ printf 'configured:%s\\n' "$name" >> /_work/test-events
 """,
     "Runner.Listener": """#!/bin/bash
 set -eu
+# Under AMD64 emulation the script inherits bash's name. Match the real ELF
+# listener so the Compose healthcheck and crash test can identify this process.
+printf '%s\\n' 'Runner.Listener' > /proc/self/comm
 test "$1" = run
 test "$2" = --startuptype
 test "$3" = service
 test "$(id -u)" != 0
 test -z "${ACCESS_TOKEN:-}"
-test "$(node --version)" = v24.22.1
+test "$(node --version)" = "${EXPECTED_NODE:-v24.22.1}"
 test ! -S /var/run/docker.sock
 touch /_work/writable
 touch /opt/hostedtoolcache/writable
@@ -87,7 +130,7 @@ def check(condition, message):
         raise AssertionError(message)
 
 
-def scenario(scope, platform):
+def scenario(scope, platform, candidate_image):
     project = "runner-offline-" + uuid.uuid4().hex[:12]
     with tempfile.TemporaryDirectory(prefix="runner-offline-") as directory:
         folder = Path(directory)
@@ -97,16 +140,21 @@ def scenario(scope, platform):
             values.update(RUNNER_SCOPE="org", REPO_URL="", ORG_NAME="example-org", RUNNER_GROUP="Trusted Builds")
         env_file.write_text("\n".join(f"{key}={value}" for key, value in values.items()))
         mounts = []
-        for name, content in MOCKS.items():
+        token_mock = {"curl": "/usr/local/bin/curl"} if candidate_image else {"token.sh": "/token.sh"}
+        destinations = token_mock | {"config.sh": "/actions-runner/config.sh",
+                                     "Runner.Listener": "/actions-runner/bin/Runner.Listener"}
+        for name, destination in destinations.items():
             path = folder / name
-            path.write_text(content)
+            path.write_text(MOCKS[name])
             path.chmod(0o755)
-            destination = {"token.sh": "/token.sh", "config.sh": "/actions-runner/config.sh",
-                           "Runner.Listener": "/actions-runner/bin/Runner.Listener"}[name]
             mounts.append({"type": "bind", "source": str(path), "target": destination, "read_only": True})
         override = folder / "offline.json"
-        override.write_text(json.dumps({"services": {"dokploy-actions-runner": {"network_mode": "none", "platform": platform, "volumes": mounts,
-                                                "cpus": 2, "mem_limit": "1g", "pids_limit": 128}}}))
+        service = {"network_mode": "none", "platform": platform, "volumes": mounts,
+                   "cpus": 2, "mem_limit": "1g", "pids_limit": 128}
+        if candidate_image:
+            service.update(image=candidate_image, init=True,
+                           environment={"CANDIDATE_IMAGE": "true", "EXPECTED_NODE": "v24.22.3"})
+        override.write_text(json.dumps({"services": {"dokploy-actions-runner": service}}))
         environment = {k: v for k, v in os.environ.items()
                        if k not in INPUTS and not k.startswith("COMPOSE_")}
         compose = ["docker", "compose", "-p", project, "--env-file", str(env_file),
@@ -177,18 +225,20 @@ def scenario(scope, platform):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--platform", required=True, choices=["linux/amd64", "linux/arm64"])
+    parser.add_argument("--candidate-image", help="Use an already built first-party image with a runner-version tag")
     args = parser.parse_args()
-    image = load_blueprint()["services"]["dokploy-actions-runner"]["image"]
+    image = args.candidate_image or load_blueprint()["services"]["dokploy-actions-runner"]["image"]
     # No image pull/authentication occurs inside tests. Only this explicit step
     # needs registry access; all scenario containers have networking disabled.
-    run(["docker", "pull", "--platform", args.platform, image], timeout=600)
+    if not args.candidate_image:
+        run(["docker", "pull", "--platform", args.platform, image], timeout=600)
     # Verify the shipped runner binary before replacing it with a mock listener.
-    version = run(["docker", "run", "--rm", "--platform", args.platform, "--network", "none", "--user", "runner",
+    version = run(["docker", "run", "--rm", "--pull", "never", "--platform", args.platform, "--network", "none", "--user", "runner",
                    "--cap-drop", "ALL", "--security-opt", "no-new-privileges:true",
                    "--entrypoint", "./bin/Runner.Listener", image, "--version"])
     check(version == image.split(":", 1)[1].split("-", 1)[0], "Runner binary version differs from image tag")
     for scope in ("repo", "org"):
-        scenario(scope, args.platform)
+        scenario(scope, args.platform, args.candidate_image)
 
 
 if __name__ == "__main__":

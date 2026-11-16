@@ -53,10 +53,12 @@ def main():
     parser.add_argument('--repo', required=True)
     parser.add_argument('--ref', required=True, help='Reviewed, pushed branch containing validate.yml')
     parser.add_argument('--output', type=Path, required=True)
+    parser.add_argument('--candidate', action='store_true', help='Use locally built :2.338.2-arm64 and :2.338.2-amd64 candidate images')
     args = parser.parse_args()
     label = 'runner-smoke-' + uuid.uuid4().hex[:12]
     token = command(['gh', 'auth', 'token'])
     report = {'repository': args.repo, 'ref': args.ref, 'label': label, 'runs': [], 'cleanup': False,
+              'candidate': args.candidate,
               'platforms': ['linux/arm64 (native Docker Desktop VM)', 'linux/amd64 (Rosetta emulation)']}
     base = f'repos/{args.repo}'
     projects = []
@@ -69,8 +71,10 @@ def main():
             for arch in ['arm64', 'amd64']:
                 project = label + '-' + arch
                 override = Path(directory) / (arch + '.json')
-                override.write_text(json.dumps({'services': {'dokploy-actions-runner': {
-                    'platform': 'linux/' + arch, 'cpus': 2, 'mem_limit': '2g', 'pids_limit': 256}}}))
+                service = {'platform': 'linux/' + arch, 'cpus': 2, 'mem_limit': '2g', 'pids_limit': 256}
+                if args.candidate:
+                    service.update(image=f'dokploy-runner-candidate:2.338.2-{arch}', init=True)
+                override.write_text(json.dumps({'services': {'dokploy-actions-runner': service}}))
                 environment = {key: value for key, value in os.environ.items()
                                if key not in INPUTS and not key.startswith('COMPOSE_')}
                 environment.update(FIXTURE | {'ACCESS_TOKEN': token, 'REPO_URL': 'https://github.com/' + args.repo,
@@ -93,8 +97,11 @@ def main():
                     for dc, environment, _ in projects:
                         command([*dc, 'restart'], env=environment, timeout=180)
                     until(ready, 'both runners online after restart')
+                inputs = {'live_smoke': 'true', 'runner_label': label}
+                if args.candidate:
+                    inputs['candidate'] = 'true'
                 api(base + '/actions/workflows/validate.yml/dispatches', 'POST',
-                    {'ref': args.ref, 'inputs': {'live_smoke': 'true', 'runner_label': label}})
+                    {'ref': args.ref, 'inputs': inputs})
                 def new_run():
                     return next((r for r in api(base + '/actions/workflows/validate.yml/runs?event=workflow_dispatch&per_page=20')['workflow_runs']
                                  if matches_dispatch(r, label, args.ref, commit, seen)), None)
