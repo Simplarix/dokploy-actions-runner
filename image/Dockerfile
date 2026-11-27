@@ -1,7 +1,7 @@
 FROM ubuntu:24.04@sha256:73b999393d07f2bf65a40373778a44dc9a6d54ad7718d29247d8ff9413c4d6a8 AS base
 
 # Cross-compile the upstream source with locked, patched Go dependencies.
-FROM --platform=$BUILDPLATFORM golang:1.27.4-bookworm@sha256:4fa7c968ba93f1635670522dbb01a2c78150443e1385746924566079f36570ea AS git-lfs
+FROM --platform=$BUILDPLATFORM golang:1.27.4-bookworm@sha256:ce59b41415e2524ae99926fe1f37ce48ba8c194dcbd2a56a65436cdcefa2bd34 AS git-lfs
 ARG TARGETARCH
 WORKDIR /src
 ADD --checksum=sha256:6ab3e7ffa03014f3ca574f06c1df835ccf9e8c079a3c5c1134b95bdff9c106c0 https://codeload.github.com/git-lfs/git-lfs/tar.gz/refs/tags/v3.8.1 /tmp/source.tar.gz
